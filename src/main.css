@@ -1,0 +1,410 @@
+/* Global styles - Theme, font, utilities, animations and global components */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ==========================================================================
+       Recomeça Design Tokens (Light Theme — padrão acolhedor)
+       ========================================================================== */
+
+    /* Paleta Base Hex / CSS custom properties */
+    --color-primary: #7fbfa8;
+    --color-primary-hover: #6da98f;
+    --color-background: #fdfaf5;
+    --color-surface: #f4f7f2;
+    --color-highlight: #e8f3ec;
+    --color-text-primary: #2f4a3e;
+    --color-text-secondary: #6a7a72;
+    --color-border: #e1e8e2;
+
+    /* Coral EXCLUSIVO para o botão SOS (nenhum outro elemento pode usar) */
+    --color-sos: #e86a4c;
+    --color-sos-hover: #d95c3f;
+    --color-sos-foreground: #ffffff;
+
+    /* Cores de Feedback */
+    --color-feedback-success: #4caf7d;
+    --color-feedback-warning: #e8a84c;
+    --color-feedback-error: #d96c68;
+    --color-feedback-info: #6ca8d6;
+
+    /* Cores de Estado */
+    --color-state-disabled-bg: #c4cfc8;
+    --color-state-disabled-text: #8fa096;
+    --color-state-focus: #6da98f;
+
+    /* Sombras (#2F4A3E base suave, SOS com elevação permanente) */
+    --shadow-sm: 0 1px 2px rgba(47, 74, 62, 0.06);
+    --shadow-md: 0 2px 8px rgba(47, 74, 62, 0.08);
+    --shadow-lg: 0 4px 16px rgba(47, 74, 62, 0.12);
+    --shadow-xl: 0 8px 24px rgba(232, 106, 76, 0.3);
+    --shadow-sos: 0 8px 24px rgba(232, 106, 76, 0.3);
+
+    /* Raios de borda */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 999px;
+    --radius: 1rem; /* 16px para componentes shadcn base */
+
+    /* Transições e Animações */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Espaçamentos e Margens de layout */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+
+    --screen-margin-mobile: 16px;
+    --screen-margin-tablet: 24px;
+    --screen-margin-desktop: 32px;
+
+    --content-max-width-mobile: 480px;
+    --content-max-width-tablet: 600px;
+    --content-max-width-desktop: 720px;
+
+    /* Shadcn/UI HSL Bridge (para manter compatibilidade com componentes existentes) */
+    /* #FDFAF5 -> hsl(38, 67%, 98%) */
+    --background: 38 67% 98%;
+    /* #2F4A3E -> hsl(155, 22%, 24%) */
+    --foreground: 155 22% 24%;
+
+    /* #F4F7F2 -> hsl(100, 20%, 96%) */
+    --card: 100 20% 96%;
+    --card-foreground: 155 22% 24%;
+
+    --popover: 38 67% 98%;
+    --popover-foreground: 155 22% 24%;
+
+    /* #7FBFA8 -> hsl(160, 34%, 62%) */
+    --primary: 160 34% 62%;
+    --primary-foreground: 155 22% 16%;
+
+    /* #E8F3EC -> hsl(141, 30%, 93%) */
+    --secondary: 141 30% 93%;
+    --secondary-foreground: 155 22% 24%;
+
+    /* #F4F7F2 */
+    --muted: 100 20% 96%;
+    /* #6A7A72 -> hsl(150, 7%, 45%) */
+    --muted-foreground: 150 7% 45%;
+
+    --accent: 141 30% 93%;
+    --accent-foreground: 155 22% 24%;
+
+    /* #D96C68 -> hsl(2, 60%, 63%) */
+    --destructive: 2 60% 63%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* #E1E8E2 */
+    --border: 130 14% 89%;
+    --input: 130 14% 89%;
+    --ring: 153 23% 54%;
+
+    --sidebar-background: 38 67% 98%;
+    --sidebar-foreground: 155 22% 24%;
+    --sidebar-primary: 160 34% 62%;
+    --sidebar-primary-foreground: 155 22% 16%;
+    --sidebar-accent: 141 30% 93%;
+    --sidebar-accent-foreground: 155 22% 24%;
+    --sidebar-border: 130 14% 89%;
+    --sidebar-ring: 153 23% 54%;
+
+    --chart-1: 160 34% 62%;
+    --chart-2: 133 39% 49%;
+    --chart-3: 35 77% 60%;
+    --chart-4: 206 56% 63%;
+    --chart-5: 12 78% 60%;
+  }
+
+  .dark {
+    /* ==========================================================================
+       Recomeça Design Tokens (Dark Theme — tons suaves, sem preto puro)
+       ========================================================================== */
+
+    --color-primary: #8fccae;
+    --color-primary-hover: #a3d9c0;
+    --color-background: #1c2420;
+    --color-surface: #242e29;
+    --color-highlight: #2a3831;
+    --color-text-primary: #e8efe9;
+    --color-text-secondary: #a0b0a7;
+    --color-border: #2d3a34;
+
+    /* SOS no modo escuro: mais claro para contraste */
+    --color-sos: #f07856;
+    --color-sos-hover: #ff8a6a;
+    --color-sos-foreground: #ffffff;
+
+    --color-feedback-success: #5dbf8c;
+    --color-feedback-warning: #f2b45a;
+    --color-feedback-error: #e57d7a;
+    --color-feedback-info: #7eb8e4;
+
+    --color-state-disabled-bg: #35433c;
+    --color-state-disabled-text: #6b7d73;
+    --color-state-focus: #8fccae;
+
+    /* Sombras em modo escuro: mais sutis */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.45);
+    --shadow-xl: 0 8px 24px rgba(240, 120, 86, 0.35);
+    --shadow-sos: 0 8px 24px rgba(240, 120, 86, 0.35);
+
+    /* Shadcn/UI HSL Bridge (Dark) */
+    /* #1C2420 -> hsl(150, 13%, 12%) */
+    --background: 150 13% 12%;
+    /* #E8EFE9 -> hsl(130, 18%, 92%) */
+    --foreground: 130 18% 92%;
+
+    /* #242E29 -> hsl(146, 12%, 16%) */
+    --card: 146 12% 16%;
+    --card-foreground: 130 18% 92%;
+
+    --popover: 146 12% 16%;
+    --popover-foreground: 130 18% 92%;
+
+    /* #8FCCAE -> hsl(150, 42%, 68%) */
+    --primary: 150 42% 68%;
+    --primary-foreground: 150 13% 12%;
+
+    /* #2A3831 */
+    --secondary: 146 14% 19%;
+    --secondary-foreground: 130 18% 92%;
+
+    --muted: 146 12% 16%;
+    /* #A0B0A7 */
+    --muted-foreground: 146 10% 66%;
+
+    --accent: 146 14% 19%;
+    --accent-foreground: 130 18% 92%;
+
+    --destructive: 2 60% 63%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 11% 20%;
+    --input: 150 11% 20%;
+    --ring: 150 42% 68%;
+
+    --sidebar-background: 150 13% 12%;
+    --sidebar-foreground: 130 18% 92%;
+    --sidebar-primary: 150 42% 68%;
+    --sidebar-primary-foreground: 150 13% 12%;
+    --sidebar-accent: 146 14% 19%;
+    --sidebar-accent-foreground: 130 18% 92%;
+    --sidebar-border: 150 11% 20%;
+    --sidebar-ring: 150 42% 68%;
+
+    --chart-1: 150 42% 68%;
+    --chart-2: 148 44% 56%;
+    --chart-3: 35 85% 65%;
+    --chart-4: 206 66% 70%;
+    --chart-5: 14 84% 64%;
+  }
+
+  /* Suporte automático via prefers-color-scheme caso a classe .dark não seja setada explicitamente */
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+      --color-primary: #8fccae;
+      --color-primary-hover: #a3d9c0;
+      --color-background: #1c2420;
+      --color-surface: #242e29;
+      --color-highlight: #2a3831;
+      --color-text-primary: #e8efe9;
+      --color-text-secondary: #a0b0a7;
+      --color-border: #2d3a34;
+
+      --color-sos: #f07856;
+      --color-sos-hover: #ff8a6a;
+      --color-sos-foreground: #ffffff;
+
+      --color-feedback-success: #5dbf8c;
+      --color-feedback-warning: #f2b45a;
+      --color-feedback-error: #e57d7a;
+      --color-feedback-info: #7eb8e4;
+
+      --color-state-disabled-bg: #35433c;
+      --color-state-disabled-text: #6b7d73;
+      --color-state-focus: #8fccae;
+
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+      --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.45);
+      --shadow-xl: 0 8px 24px rgba(240, 120, 86, 0.35);
+      --shadow-sos: 0 8px 24px rgba(240, 120, 86, 0.35);
+
+      --background: 150 13% 12%;
+      --foreground: 130 18% 92%;
+      --card: 146 12% 16%;
+      --card-foreground: 130 18% 92%;
+      --popover: 146 12% 16%;
+      --popover-foreground: 130 18% 92%;
+      --primary: 150 42% 68%;
+      --primary-foreground: 150 13% 12%;
+      --secondary: 146 14% 19%;
+      --secondary-foreground: 130 18% 92%;
+      --muted: 146 12% 16%;
+      --muted-foreground: 146 10% 66%;
+      --accent: 146 14% 19%;
+      --accent-foreground: 130 18% 92%;
+      --destructive: 2 60% 63%;
+      --destructive-foreground: 0 0% 100%;
+      --border: 150 11% 20%;
+      --input: 150 11% 20%;
+      --ring: 150 42% 68%;
+    }
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    font-family:
+      'Nunito',
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      sans-serif;
+    font-weight: 400;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Foco visível padrão: outline 2-3px #6DA98F com 2px offset — nunca removido */
+  :focus-visible {
+    outline: 2px solid var(--color-state-focus);
+    outline-offset: 2px;
+  }
+
+  /* Tabular figures para números grandes/contadores */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Respeito estrito a prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* NEVER REMOVE THIS */
+  section[aria-label='Notifications alt+T'] {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+@layer utilities {
+  /* Animações e transições do Recomeça */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes fade-in-up {
+    from {
+      transform: translateY(12px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(48px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Timer de respiração guiada (futuro: 4s inspirar, 4s expirar) */
+  @keyframes breathe-circle {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-fade-out {
+    animation: fade-out 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-slide-up {
+    animation: slide-up 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-breathe {
+    animation: breathe-circle 8s ease-in-out infinite;
+  }
+
+  /* Toque acessível mínimo 44px */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Elevação SOS permanente com glow */
+  .shadow-sos {
+    box-shadow: var(--shadow-sos);
+  }
+}
