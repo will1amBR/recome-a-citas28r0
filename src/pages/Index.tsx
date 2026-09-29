@@ -1,14 +1,12 @@
 import * as React from 'react'
+import { Link } from 'react-router-dom'
+import { RecomecaButton, RecomecaCard, MilestoneBadge, ProgressBar } from '@/components/recomeca'
 import {
-  RecomecaButton,
-  RecomecaCard,
-  RecomecaInput,
-  MoodSelector,
-  TriggerChip,
-  MilestoneBadge,
-  ProgressBar,
-  ConfirmationModal,
-} from '@/components/recomeca'
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import {
   CalendarDays,
   Sparkles,
@@ -20,67 +18,55 @@ import {
   Lock,
   PhoneCall,
   Activity,
-  ChevronDown,
-  Info,
+  Heart,
+  ExternalLink,
+  HelpCircle,
+  Quote,
 } from 'lucide-react'
 
 export default function Index() {
-  // Estados para demonstração interativa dos componentes base na própria LP
-  const [selectedMood, setSelectedMood] = React.useState<string>('bem')
-  const [activeTriggers, setActiveTriggers] = React.useState<string[]>(['estresse', 'festa'])
-  const [demoInput, setDemoInput] = React.useState('')
-  const [inputError, setInputError] = React.useState('')
-  const [modalOpen, setModalOpen] = React.useState(false)
-
-  const toggleTrigger = (triggerName: string) => {
-    setActiveTriggers((prev) =>
-      prev.includes(triggerName) ? prev.filter((t) => t !== triggerName) : [...prev, triggerName],
-    )
-  }
-
-  const handleDemoValidate = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!demoInput.trim()) {
-      setInputError('Precisamos que você escreva algo para guardar sua reflexão.')
-    } else {
-      setInputError('')
-      setModalOpen(true)
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-[#FDFAF5] dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] flex flex-col font-sans selection:bg-[#7FBFA8]/30">
+    <div className="w-full flex flex-col font-sans selection:bg-[#7FBFA8]/30">
       {/* -------------------------------------------------------------
-          Header / Barra Superior Discreta
+          Header / Barra Superior Discreta da Landing
          ------------------------------------------------------------- */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-[#FDFAF5]/90 dark:bg-[#1C2420]/90 border-b border-[#E1E8E2] dark:border-[#2D3A34] transition-colors">
-        <div className="max-w-[720px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 focus-visible:outline-none">
             <div className="w-8 h-8 rounded-full bg-[#7FBFA8] dark:bg-[#8FCCAE] flex items-center justify-center text-[#2F4A3E] dark:text-[#1C2420] font-bold text-base shadow-sm">
               R
             </div>
-            <span className="font-bold text-xl tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9]">
-              Recomeça
-            </span>
-          </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-lg tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9] leading-tight">
+                Recomeça
+              </span>
+              <span className="text-[10px] font-medium text-[#6A7A72] dark:text-[#A0B0A7] leading-none">
+                Um dia de cada vez
+              </span>
+            </div>
+          </Link>
 
           <div className="flex items-center gap-2">
-            <a href="#como-funciona" className="hidden sm:inline-block">
+            <Link to="/hoje" className="hidden sm:inline-block">
               <RecomecaButton variant="secondary" size="sm">
-                Como funciona
+                Abrir app
               </RecomecaButton>
-            </a>
-            <a href="#comecar">
-              <RecomecaButton variant="primary" size="sm">
-                Quero recomeçar
+            </Link>
+            <Link to="/onboarding">
+              <RecomecaButton
+                variant="primary"
+                size="sm"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Começar
               </RecomecaButton>
-            </a>
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Conteúdo Centralizado (max-w 720px para acolhimento e foco) */}
-      <main className="flex-1 w-full max-w-[720px] mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-12 sm:space-y-16">
+      {/* Conteúdo Central */}
+      <div className="w-full px-4 sm:px-6 py-6 sm:py-10 space-y-12 sm:space-y-16">
         {/* =============================================================
             1. HERO
            ============================================================= */}
@@ -94,42 +80,43 @@ export default function Index() {
           {/* Nome e frase-guia */}
           <div className="space-y-3">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9] leading-[1.15]">
-              Recomeça
+              Controle seus vícios.
+              <br />
+              <span className="text-[#6DA98F] dark:text-[#8FCCAE]">Um dia de cada vez.</span>
             </h1>
-            <p className="text-xl sm:text-2xl font-semibold text-[#6A7A72] dark:text-[#A0B0A7] max-w-lg mx-auto">
-              Um dia de cada vez. Recomeçar faz parte.
+            <p className="text-lg sm:text-xl font-semibold text-[#6A7A72] dark:text-[#A0B0A7] max-w-lg mx-auto">
+              Recomeçar faz parte. Aqui não há culpa, não há pressa e sua história nunca é zerada.
             </p>
           </div>
 
-          {/* Subtítulo explicando as 4 funções */}
-          <p className="text-base sm:text-lg text-[#2F4A3E]/90 dark:text-[#E8EFE9]/90 max-w-xl mx-auto leading-relaxed">
-            Seu companheiro discreto com <strong>contador acolhedor de dias</strong>,{' '}
-            <strong>registro de episódios sem culpa</strong>,{' '}
-            <strong>troca de hábito quando bater a vontade</strong> e uma{' '}
-            <strong>rede de apoio com botão de emergência</strong>.
+          {/* Subtítulo explicando as funções */}
+          <p className="text-sm sm:text-base text-[#2F4A3E]/90 dark:text-[#E8EFE9]/90 max-w-xl mx-auto leading-relaxed">
+            Seja para <strong>parar de vez</strong> ou <strong>reduzir aos poucos</strong>:
+            acompanhe seus dias, registre episódios com honestidade, troque o hábito quando a
+            vontade vier e tenha apoio seguro sempre à mão.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <a href="#comecar" className="w-full sm:w-auto">
+            <Link to="/onboarding" className="w-full sm:w-auto">
               <RecomecaButton
                 variant="primary"
                 size="lg"
                 fullWidth
                 rightIcon={<ArrowRight className="w-5 h-5" />}
               >
-                Quero recomeçar
+                Começar minha jornada
               </RecomecaButton>
-            </a>
-            <a href="#como-funciona" className="w-full sm:w-auto">
+            </Link>
+            <Link to="/hoje" className="w-full sm:w-auto">
               <RecomecaButton variant="secondary" size="lg" fullWidth>
-                Ver como funciona
+                Ver demonstração do app
               </RecomecaButton>
-            </a>
+            </Link>
           </div>
 
-          {/* Card visual de demonstração do contador (não é tela funcional do app) */}
-          <div className="pt-4">
+          {/* Card visual de demonstração do contador */}
+          <div className="pt-2">
             <RecomecaCard
               variant="highlight"
               padding="lg"
@@ -138,9 +125,9 @@ export default function Index() {
               <div className="flex items-center justify-between mb-3 text-xs sm:text-sm font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarDays className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE]" />
-                  Exemplo de jornada
+                  Exemplo de jornada real
                 </span>
-                <MilestoneBadge days={21} label="Hábito consolidado" size="sm" />
+                <MilestoneBadge days={21} label="Primeiro marco" size="sm" />
               </div>
 
               <div className="py-2">
@@ -148,7 +135,7 @@ export default function Index() {
                   21
                 </span>
                 <p className="text-sm sm:text-base font-semibold text-[#6A7A72] dark:text-[#A0B0A7] mt-1">
-                  dias no seu ritmo
+                  dias limpos agora
                 </p>
               </div>
 
@@ -158,7 +145,7 @@ export default function Index() {
                   size="md"
                   label="Rumo ao marco de 30 dias"
                   showPercentage
-                  helperText="Sua melhor sequência foi de 18 dias. Esse progresso é todo seu."
+                  helperText="Melhor sequência: 34 dias • Dias livres no mês: 23 • Um hábito se constrói em média em ~66 dias."
                 />
               </div>
             </RecomecaCard>
@@ -166,19 +153,19 @@ export default function Index() {
         </section>
 
         {/* =============================================================
-            2. COMO FUNCIONA (4 Blocos / Funções Centrais)
+            2. COMO FUNCIONA (4 Passos com Ícones)
            ============================================================= */}
         <section id="como-funciona" className="space-y-6 scroll-mt-20">
           <div className="text-center space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-              Simplicidade no dia a dia
+              Simplicidade e acolhimento
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-              Como o Recomeça funciona
+              Como o Recomeça funciona em 4 passos
             </h2>
             <p className="text-sm sm:text-base text-[#6A7A72] dark:text-[#A0B0A7] max-w-md mx-auto">
-              Quatro pilares simples pensados para apoiar você em qualquer momento, com discrição e
-              sem complicação.
+              Sem termos clínicos complicados, sem gráficos frios. Cada ferramenta foi criada para
+              acalmar.
             </p>
           </div>
 
@@ -189,15 +176,17 @@ export default function Index() {
                 <CalendarDays className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                1. Contador de dias
+                1. Contador que não zera tudo
               </h3>
               <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                Acompanhe o tempo que você conquistou. Se houver tropeço, seu histórico continua
-                seguro com a melhor sequência sempre visível.
+                Você acompanha os dias atuais, mas sua <strong>melhor sequência</strong> e os{' '}
+                <strong>dias livres no mês</strong> continuam visíveis. O que você viveu continua
+                valendo.
               </p>
               <div className="pt-1 flex flex-wrap gap-1.5">
-                <MilestoneBadge days={7} size="sm" />
+                <MilestoneBadge days={21} size="sm" />
                 <MilestoneBadge days={30} size="sm" />
+                <MilestoneBadge days={60} size="sm" />
                 <MilestoneBadge days={90} size="sm" />
               </div>
             </RecomecaCard>
@@ -208,16 +197,14 @@ export default function Index() {
                 <Activity className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                2. Registro de episódios
+                2. Registro seguro do que aconteceu
               </h3>
               <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                Anote como se sentiu e o que aconteceu em poucos segundos. Sem julgamento, sem
-                perguntas invasivas e sem nenhuma culpa.
+                Escreva livremente, identifique gatilhos (estresse, festa, solidão) e anote os
+                gastos com honestidade. Registrar já é um ato de cuidado.
               </p>
-              <div className="pt-1 flex flex-wrap gap-1.5">
-                <TriggerChip label="estresse" selected size="sm" />
-                <TriggerChip label="solidão" size="sm" />
-                <TriggerChip label="briga" size="sm" />
+              <div className="pt-1 text-xs text-[#2F4A3E] dark:text-[#8FCCAE] font-semibold bg-[#E8F3EC] dark:bg-[#2A3831] px-3 py-1.5 rounded-xl inline-block">
+                Gatilhos • Tempo consumido • Recibo do momento
               </div>
             </RecomecaCard>
 
@@ -227,14 +214,14 @@ export default function Index() {
                 <Sparkles className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                3. Troca de hábito na vontade
+                3. Bateu a vontade? Troque de hábito
               </h3>
               <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                Quando a vontade bater, acione sugestões rápidas de 3 minutos: beber água, respirar
-                com calma ou dar uma volta curta.
+                A vontade vem e passa como uma onda. Um timer de 15 minutos, respiração guiada calma
+                e ideias práticas para tirar o foco da urgência.
               </p>
-              <div className="pt-1 text-xs font-semibold text-[#2F4A3E] dark:text-[#8FCCAE] bg-[#E8F3EC] dark:bg-[#2A3831] px-3 py-1.5 rounded-xl inline-block">
-                Respiração guiada • Copo de água • Caminhada
+              <div className="pt-1 text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                Timer 15 min • Respiração 4s/6s • Caminhada, água, banho
               </div>
             </RecomecaCard>
 
@@ -244,33 +231,33 @@ export default function Index() {
                 <HeartHandshake className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                4. SOS e rede de apoio
+                4. SOS e apoio ao alcance de um toque
               </h3>
               <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                Acesso imediato com um toque a quem você confia e aos serviços públicos e gratuitos
-                de acolhimento (CVV 188 e SAMU 192).
+                Em momentos difíceis, chame seu contato de confiança com localização via WhatsApp,
+                ou ligue direto para SAMU 192 e CVV 188.
               </p>
-              <div className="pt-1 text-xs text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
-                <PhoneCall className="w-3.5 h-3.5 text-[#E86A4C]" />
-                Botão coral exclusivo nas telas do aplicativo
+              <div className="pt-1 text-xs text-[#E86A4C] dark:text-[#F07856] font-semibold flex items-center gap-1.5">
+                <PhoneCall className="w-3.5 h-3.5" />
+                Botão SOS flutuante disponível em todas as telas
               </div>
             </RecomecaCard>
           </div>
         </section>
 
         {/* =============================================================
-            3. PRINCÍPIOS (Linguagem sem culpa, histórico, privacidade)
+            3. PRINCÍPIOS FUNDAMENTAIS
            ============================================================= */}
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-              Nossos valores
+              O que nos guia
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-              Princípios do Recomeça
+              Princípios inegociáveis do Recomeça
             </h2>
             <p className="text-sm sm:text-base text-[#6A7A72] dark:text-[#A0B0A7] max-w-md mx-auto">
-              Cuidado humano em cada detalhe, para que você nunca se sinta sozinho.
+              Cada tela foi desenhada para acolher, nunca para acusar ou cobrar.
             </p>
           </div>
 
@@ -281,26 +268,27 @@ export default function Index() {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                  Linguagem sem culpa
+                  Linguagem simples, sem julgamento e sem culpa
                 </h3>
                 <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                  Nada de palavras agressivas ou contadores com tom punitivo. Recomeçar faz parte da
-                  jornada de qualquer pessoa.
+                  Não existem palavras punitivas. Reconhecemos que o caminho tem altos e baixos e
+                  que qualquer dia de atenção consigo mesmo é um avanço.
                 </p>
               </div>
             </RecomecaCard>
 
             <RecomecaCard variant="default" padding="md" className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] dark:text-[#8FCCAE] flex items-center justify-center shrink-0 mt-0.5">
-                <Activity className="w-5 h-5" />
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                  Recaída não zera seu histórico
+                  Segurança em primeiro lugar: nunca sugerimos doses
                 </h3>
                 <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                  Os dias que você conquistou continuam sendo seus. O aplicativo guarda e destaca a
-                  sua melhor sequência para você se lembrar da sua força.
+                  O app nunca sugere dosagens nem pede para parar remédios por conta própria. Para
+                  certas substâncias, parar de vez é perigoso — sempre orientamos a conversar com o
+                  médico.
                 </p>
               </div>
             </RecomecaCard>
@@ -311,11 +299,11 @@ export default function Index() {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                  Privacidade total e discrição (LGPD)
+                  Privacidade total e notificações neutras (LGPD)
                 </h3>
                 <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                  Seus dados são confidenciais e protegidos pela LGPD. As notificações são neutras e
-                  nunca citam substâncias na tela de bloqueio do celular.
+                  Seus dados de saúde são seus. Notificações chegam discretas (&ldquo;Seu lembrete
+                  do dia&rdquo;), sem nunca expor nenhuma substância na tela do seu celular.
                 </p>
               </div>
             </RecomecaCard>
@@ -323,19 +311,18 @@ export default function Index() {
         </section>
 
         {/* =============================================================
-            4. PARA QUEM (Substâncias, açúcar/cafeína, remédios — sem fotos de substâncias)
+            4. DEPOIMENTOS ILUSTRATIVOS (Claramente marcados)
            ============================================================= */}
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-              Feito para o seu objetivo
+              Jornadas possíveis
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-              Para quem é o Recomeça?
+              Como as pessoas usam o Recomeça
             </h2>
-            <p className="text-sm sm:text-base text-[#6A7A72] dark:text-[#A0B0A7] max-w-md mx-auto">
-              O método acolhe diferentes jornadas de controle, redução ou pausa completa, sem
-              rótulos ou preconceitos.
+            <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+              (Exemplos ilustrativos representando situações reais de apoio)
             </p>
           </div>
 
@@ -343,165 +330,162 @@ export default function Index() {
             <RecomecaCard
               variant="highlight"
               padding="md"
-              className="text-center space-y-2 flex flex-col items-center justify-center"
+              className="space-y-3 flex flex-col justify-between"
             >
-              <div className="w-10 h-10 rounded-2xl bg-[#7FBFA8]/20 dark:bg-[#8FCCAE]/20 text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center justify-center">
-                <Activity className="w-5 h-5" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                  <Quote className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE]" />
+                  <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Carlos, 34 anos
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed italic">
+                  &ldquo;Ter o contador sem a humilhação de ver tudo zerar mudou minha cabeça.
+                  Quando tive um episódio, continuei vendo meus 40 dias anteriores.&rdquo;
+                </p>
               </div>
-              <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                Substâncias
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                Para quem busca reduzir ou interromper o uso no seu próprio ritmo, com discrição.
-              </p>
+              <span className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] block border-t border-[#7FBFA8]/20 pt-2">
+                Objetivo: Álcool • Parar
+              </span>
             </RecomecaCard>
 
             <RecomecaCard
               variant="highlight"
               padding="md"
-              className="text-center space-y-2 flex flex-col items-center justify-center"
+              className="space-y-3 flex flex-col justify-between"
             >
-              <div className="w-10 h-10 rounded-2xl bg-[#7FBFA8]/20 dark:bg-[#8FCCAE]/20 text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center justify-center">
-                <Sparkles className="w-5 h-5" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                  <Quote className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE]" />
+                  <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Juliana, 29 anos
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed italic">
+                  &ldquo;A respiração de 15 minutos na hora que bate o desespero me salvou várias
+                  noites. A vontade vem forte, mas passa.&rdquo;
+                </p>
               </div>
-              <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                Açúcar e cafeína
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                Para quem sente a saúde pesada e quer recuperar o bem-estar e o foco mental.
-              </p>
+              <span className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] block border-t border-[#7FBFA8]/20 pt-2">
+                Objetivo: Açúcar e café • Reduzir
+              </span>
             </RecomecaCard>
 
             <RecomecaCard
               variant="highlight"
               padding="md"
-              className="text-center space-y-2 flex flex-col items-center justify-center"
+              className="space-y-3 flex flex-col justify-between"
             >
-              <div className="w-10 h-10 rounded-2xl bg-[#7FBFA8]/20 dark:bg-[#8FCCAE]/20 text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                  <Quote className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE]" />
+                  <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Rodrigo, 42 anos
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed italic">
+                  &ldquo;Uso o botão SOS para mandar WhatsApp com minha localização para o meu
+                  irmão. Saber que ele está a um toque me dá paz.&rdquo;
+                </p>
               </div>
-              <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">Remédios</h3>
-              <p className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                Apoio na rotina e no autoconhecimento, sempre em sintonia com acompanhamento médico.
-              </p>
+              <span className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] block border-t border-[#7FBFA8]/20 pt-2">
+                Objetivo: Calmantes • Em tratamento médico
+              </span>
             </RecomecaCard>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-xs text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-2.5">
-            <Info className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE] shrink-0" />
-            <span>
-              Parar certas substâncias de uma vez pode ser perigoso. Converse sempre com um médico
-              antes de fazer alterações bruscas.
-            </span>
           </div>
         </section>
 
         {/* =============================================================
-            EXPERIMENTE OS COMPONENTES BASE (Demonstração prática dos 8 componentes)
+            5. FAQ ACCORDION (Perguntas Frequentes)
            ============================================================= */}
-        <section className="space-y-6 pt-4 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+        <section className="space-y-6">
           <div className="text-center space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-              Componentes do Design System
+              Tire suas dúvidas
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-              Sinta a experiência acolhedora
+              Perguntas frequentes
             </h2>
-            <p className="text-sm sm:text-base text-[#6A7A72] dark:text-[#A0B0A7] max-w-md mx-auto">
-              Experimente abaixo os componentes que guiarão o seu dia a dia dentro do Recomeça.
+            <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7] max-w-md mx-auto">
+              Tudo sobre como o aplicativo cuida de você.
             </p>
           </div>
 
-          <RecomecaCard variant="default" padding="lg" className="space-y-6">
-            {/* Seletor de humor */}
-            <div className="space-y-2">
-              <MoodSelector
-                value={selectedMood}
-                onChange={(mood) => setSelectedMood(mood)}
-                label="1. Seletor de humor diário"
-              />
-            </div>
+          <RecomecaCard variant="default" padding="sm" className="overflow-hidden">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem
+                value="faq-1"
+                className="border-b border-[#E1E8E2] dark:border-[#2D3A34] px-3"
+              >
+                <AccordionTrigger className="text-left text-sm sm:text-base font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] py-3.5 hover:no-underline">
+                  O que acontece se eu tiver uma recaída? O contador zera?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed pb-3.5">
+                  Não zera tudo. O contador mostra os dias limpos do ciclo atual, mas sua melhor
+                  sequência continua registrada com carinho, assim como os dias livres do mês.
+                  Recomeçar faz parte do processo e cada tentativa fortalece novos caminhos.
+                </AccordionContent>
+              </AccordionItem>
 
-            {/* Chips de gatilho */}
-            <div className="space-y-2 text-left">
-              <span className="text-sm font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                2. Chips de gatilho (selecione para experimentar)
-              </span>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {['estresse', 'briga', 'tédio', 'festa', 'solidão', 'outro'].map((trigger) => (
-                  <TriggerChip
-                    key={trigger}
-                    label={trigger}
-                    selected={activeTriggers.includes(trigger)}
-                    onToggle={() => toggleTrigger(trigger)}
-                  />
-                ))}
-              </div>
-            </div>
+              <AccordionItem
+                value="faq-2"
+                className="border-b border-[#E1E8E2] dark:border-[#2D3A34] px-3"
+              >
+                <AccordionTrigger className="text-left text-sm sm:text-base font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] py-3.5 hover:no-underline">
+                  O aplicativo sugere diminuir ou parar remédios?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed pb-3.5">
+                  Nunca. O aplicativo nunca recomenda dosagens nem pede para você parar qualquer
+                  remédio por conta própria. Qualquer mudança de prescrição deve ser feita com seu
+                  médico de confiança. O app serve apenas para acompanhar horários e sinais de
+                  alerta para levar à sua consulta.
+                </AccordionContent>
+              </AccordionItem>
 
-            {/* Campo de texto com validação gentil */}
-            <form onSubmit={handleDemoValidate} className="space-y-4">
-              <RecomecaInput
-                label="3. Campo de texto com estado gentil de foco e erro"
-                placeholder="Ex.: Hoje senti vontade depois de um dia puxado no trabalho..."
-                value={demoInput}
-                onChange={(e) => {
-                  setDemoInput(e.target.value)
-                  if (inputError) setInputError('')
-                }}
-                errorMessage={inputError}
-                helperText="Escreva livremente. Nada do que você digitar aqui será julgado."
-              />
+              <AccordionItem
+                value="faq-3"
+                className="border-b border-[#E1E8E2] dark:border-[#2D3A34] px-3"
+              >
+                <AccordionTrigger className="text-left text-sm sm:text-base font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] py-3.5 hover:no-underline">
+                  O que o botão SOS faz de verdade?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed pb-3.5">
+                  O botão SOS abre uma tela emergencial de um toque: permite ligar diretamente para
+                  o SAMU 192, CVV 188 ou para seu contato de apoio, além de enviar uma mensagem
+                  pronta no WhatsApp com sua localização aproximada pelo Google Maps.
+                </AccordionContent>
+              </AccordionItem>
 
-              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
-                <RecomecaButton variant="primary" size="md" type="submit">
-                  Guardar pensamento (abre modal)
-                </RecomecaButton>
+              <AccordionItem
+                value="faq-4"
+                className="border-b border-[#E1E8E2] dark:border-[#2D3A34] px-3"
+              >
+                <AccordionTrigger className="text-left text-sm sm:text-base font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] py-3.5 hover:no-underline">
+                  Minha família ou patrão podem ver meus registros?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed pb-3.5">
+                  Não. Seus dados são confidenciais e protegidos pela LGPD. Além disso, as
+                  notificações enviadas para o seu celular são totalmente neutras (exemplo:
+                  &ldquo;Seu lembrete do dia&rdquo;) e nunca citam substâncias.
+                </AccordionContent>
+              </AccordionItem>
 
-                <RecomecaButton
-                  variant="secondary"
-                  size="md"
-                  onClick={() => {
-                    setDemoInput('')
-                    setInputError('Exemplo de erro gentil: preencha antes de continuar.')
-                  }}
-                >
-                  Ver mensagem de erro gentil
-                </RecomecaButton>
-              </div>
-            </form>
-
-            {/* Amostra visual do botão SOS (apenas como demonstração de design system, com aviso) */}
-            <div className="pt-4 border-t border-[#E1E8E2] dark:border-[#2D3A34] space-y-2 text-left">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-                  Demonstração do Botão SOS (Coral Exclusivo)
-                </span>
-                <span className="text-xs text-[#E86A4C] font-semibold">
-                  Apenas demonstração visual
-                </span>
-              </div>
-              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
-                O tom coral é reservado estritamente para o botão SOS no app. Veja o estilo com
-                elevação e destaque permanente:
-              </p>
-              <div className="pt-2">
-                <RecomecaButton
-                  variant="sos"
-                  size="lg"
-                  fullWidth
-                  leftIcon={<PhoneCall className="w-5 h-5" />}
-                  onClick={() => setModalOpen(true)}
-                >
-                  Preciso de ajuda agora (SOS)
-                </RecomecaButton>
-              </div>
-            </div>
+              <AccordionItem value="faq-5" className="border-none px-3">
+                <AccordionTrigger className="text-left text-sm sm:text-base font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] py-3.5 hover:no-underline">
+                  Por que os ciclos de 21, 30, 60 e 90 dias são destacados?
+                </AccordionTrigger>
+                <AccordionContent className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed pb-3.5">
+                  Esses marcos funcionam como pequenas celebrações psicológicas de acolhimento. A
+                  ciência do comportamento mostra que consolidar um novo hábito leva em média cerca
+                  de 66 dias — cada semana vencida é uma vitória.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </RecomecaCard>
         </section>
 
         {/* =============================================================
-            5. SEGURANÇA E AVISO LEGAL
+            6. AVISO LEGAL E SEGURANÇA
            ============================================================= */}
         <section className="space-y-4">
           <RecomecaCard
@@ -511,7 +495,7 @@ export default function Index() {
           >
             <div className="flex items-center gap-2 text-[#2F4A3E] dark:text-[#E8EFE9] font-bold text-base">
               <ShieldAlert className="w-5 h-5 text-[#E86A4C]" />
-              <span>Segurança e Aviso Legal Importante</span>
+              <span>Segurança e Aviso Legal Obrigatório</span>
             </div>
 
             <p className="text-sm text-[#2F4A3E] dark:text-[#E8EFE9] font-medium leading-relaxed">
@@ -519,84 +503,117 @@ export default function Index() {
             </p>
 
             <p className="text-xs sm:text-sm text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-              Em crise, o botão <strong>Preciso de ajuda agora</strong> liga para{' '}
-              <strong>SAMU 192</strong>, <strong>CVV 188</strong> e seu contato de confiança. O
-              Recomeça é uma ferramenta de apoio ao autocuidado e nunca sugere dosagens ou substitui
-              a avaliação de profissionais da saúde.
+              Para pessoas com uso frequente de álcool, calmantes ou opioides,{' '}
+              <strong>parar de uma vez pode ser perigoso</strong>. Consulte sempre uma equipe
+              médica, o CAPS AD do seu município ou ligue para o SAMU 192.
             </p>
           </RecomecaCard>
         </section>
 
         {/* =============================================================
-            Chamada Final para Começar
+            7. CTA FINAL FORTE
            ============================================================= */}
         <section
           id="comecar"
           className="text-center p-6 sm:p-10 rounded-3xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/30 dark:border-[#8FCCAE]/20 space-y-4"
         >
+          <div className="w-12 h-12 rounded-full bg-[#7FBFA8]/30 dark:bg-[#8FCCAE]/30 text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center justify-center mx-auto">
+            <Heart className="w-6 h-6" />
+          </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
             Dê o primeiro passo com tranquilidade
           </h2>
           <p className="text-sm sm:text-base text-[#6A7A72] dark:text-[#A0B0A7] max-w-md mx-auto leading-relaxed">
-            Sem cobrança, sem julgamento e no seu tempo. As próximas fases do aplicativo estão sendo
-            preparadas com carinho.
+            Sem cobrança, sem julgamento e no seu tempo. O processo começa respondendo a poucas
+            perguntas gentis.
           </p>
           <div className="pt-2">
-            <RecomecaButton
-              variant="primary"
-              size="lg"
-              onClick={() => {
-                alert('Obrigado pelo carinho! As telas do app serão liberadas no próximo passo.')
-              }}
-            >
-              Quero recomeçar hoje
-            </RecomecaButton>
+            <Link to="/onboarding">
+              <RecomecaButton
+                variant="primary"
+                size="lg"
+                rightIcon={<ArrowRight className="w-5 h-5" />}
+              >
+                Começar agora no seu ritmo
+              </RecomecaButton>
+            </Link>
           </div>
         </section>
-      </main>
+      </div>
 
       {/* =============================================================
-          6. RODAPÉ SIMPLES
+          8. RODAPÉ COMPLETO
          ============================================================= */}
-      <footer className="mt-12 border-t border-[#E1E8E2] dark:border-[#2D3A34] bg-[#F4F7F2] dark:bg-[#242E29]/50 py-8 px-4 sm:px-6">
-        <div className="max-w-[720px] mx-auto text-center space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-[#7FBFA8] dark:bg-[#8FCCAE] flex items-center justify-center text-[#2F4A3E] dark:text-[#1C2420] font-bold text-xs">
-              R
+      <footer className="mt-12 border-t border-[#E1E8E2] dark:border-[#2D3A34] bg-[#F4F7F2] dark:bg-[#242E29]/50 py-10 px-4 sm:px-6">
+        <div className="w-full max-w-[720px] mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-[#7FBFA8] dark:bg-[#8FCCAE] flex items-center justify-center text-[#2F4A3E] dark:text-[#1C2420] font-bold text-xs">
+                R
+              </div>
+              <span className="font-bold text-base text-[#2F4A3E] dark:text-[#E8EFE9]">
+                Recomeça
+              </span>
             </div>
-            <span className="font-bold text-base text-[#2F4A3E] dark:text-[#E8EFE9]">Recomeça</span>
+            <p className="text-xs font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+              Um dia de cada vez. Recomeçar faz parte.
+            </p>
           </div>
 
-          <p className="text-sm font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
-            Um dia de cada vez. Recomeçar faz parte.
-          </p>
+          <div className="pt-2 border-t border-[#E1E8E2]/60 dark:border-[#2D3A34]/60">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block mb-2">
+              Redes públicas e gratuitas de acolhimento
+            </span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#2F4A3E] dark:text-[#8FCCAE]">
+              <a
+                href="https://www.aa.org.br/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline inline-flex items-center gap-1"
+              >
+                A.A. (Alcoólicos Anônimos) <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href="https://www.na.org.br/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline inline-flex items-center gap-1"
+              >
+                N.A. (Narcóticos Anônimos) <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href="https://cvv.org.br/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline inline-flex items-center gap-1"
+              >
+                CVV 188 <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href="https://www.gov.br/saude/pt-br/composicao/saes/desmad/raps/caps"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline inline-flex items-center gap-1"
+              >
+                CAPS AD (SUS) <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
 
-          <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] max-w-md mx-auto leading-relaxed opacity-90">
-            Este app não substitui tratamento. Em emergência, ligue 192.
-            <br />
-            Dados protegidos conforme a LGPD. Sem imagens de substâncias ou julgamentos.
-          </p>
-
-          <p className="text-[11px] text-[#6A7A72]/70 dark:text-[#A0B0A7]/70 pt-2">
-            © {new Date().getFullYear()} Recomeça • Todos os direitos reservados.
-          </p>
+          <div className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] space-y-1 pt-2 border-t border-[#E1E8E2]/60 dark:border-[#2D3A34]/60 leading-relaxed">
+            <p className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+              Este app não substitui tratamento. Em emergência, ligue 192.
+            </p>
+            <p>
+              Privacidade: Dados protegidos conforme a Lei Geral de Proteção de Dados (LGPD).
+              Notificações são neutras. Sem termos clínicos punitivos, sem exposição pública.
+            </p>
+            <p className="pt-2 opacity-75">
+              © {new Date().getFullYear()} Recomeça • Todos os direitos reservados.
+            </p>
+          </div>
         </div>
       </footer>
-
-      {/* Modal de Confirmação Demonstrativo Acolhedor */}
-      <ConfirmationModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        title="Pensamento guardado com calma"
-        description="Seu registro foi acolhido com sucesso. Lembre-se: cada momento de atenção com você mesmo é um avanço real na sua jornada."
-        confirmText="Entendido, obrigado"
-        cancelText="Fechar"
-        icon={<CheckCircle2 className="w-6 h-6 text-[#4CAF7D]" />}
-        onConfirm={() => {
-          setModalOpen(false)
-          setDemoInput('')
-        }}
-      />
     </div>
   )
 }

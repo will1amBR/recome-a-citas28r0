@@ -6,6 +6,14 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+import Onboarding from './pages/Onboarding'
+import Hoje from './pages/Hoje'
+import Registrar from './pages/Registrar'
+import Trocar from './pages/Trocar'
+import Diario from './pages/Diario'
+import SOS from './pages/SOS'
+import Apoio from './pages/Apoio'
+import Perfil from './pages/Perfil'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
 // AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
@@ -18,7 +26,14 @@ const App = () => (
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES MUST BE ADDED HERE */}
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/hoje" element={<Hoje />} />
+          <Route path="/registrar" element={<Registrar />} />
+          <Route path="/trocar" element={<Trocar />} />
+          <Route path="/diario" element={<Diario />} />
+          <Route path="/sos" element={<SOS />} />
+          <Route path="/apoio" element={<Apoio />} />
+          <Route path="/perfil" element={<Perfil />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

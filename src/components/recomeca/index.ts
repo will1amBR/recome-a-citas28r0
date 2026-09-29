@@ -25,3 +25,5 @@ export type { ProgressBarProps } from './ProgressBar'
 
 export { ConfirmationModal } from './ConfirmationModal'
 export type { ConfirmationModalProps } from './ConfirmationModal'
+
+export { ScreenHeader, LegalNoticeFooter } from './ScreenHeader'
