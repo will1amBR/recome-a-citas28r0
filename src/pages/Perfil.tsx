@@ -88,17 +88,17 @@ export default function Perfil() {
                 key={habit.id}
                 variant="default"
                 padding="md"
-                className="flex items-center justify-between"
+                className="flex items-center justify-between gap-2"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center shrink-0">
                     <Activity className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
                       {habit.name}
                     </h4>
-                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
                       {habit.goalType === 'parar'
                         ? 'Objetivo: Parar de vez'
                         : 'Objetivo: Reduzir aos poucos'}
@@ -106,11 +106,11 @@ export default function Perfil() {
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <span className="text-xs font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9] block">
                     {habit.currentStreakDays} dias
                   </span>
-                  <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                  <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block">
                     Melhor: {habit.bestStreakDays}d
                   </span>
                 </div>
@@ -128,22 +128,22 @@ export default function Perfil() {
           </h3>
 
           <RecomecaCard variant="default" padding="md" className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#E86A4C] flex items-center justify-center">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#E86A4C] flex items-center justify-center shrink-0">
                   <HeartHandshake className="w-4 h-4" />
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                <div className="min-w-0">
+                  <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
                     {MOCK_CONTACT.name}
                   </h4>
-                  <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                  <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
                     {MOCK_CONTACT.displayPhone}
                   </span>
                 </div>
               </div>
 
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] border border-[#4CAF7D]/30">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] border border-[#4CAF7D]/30 shrink-0">
                 Avisado
               </span>
             </div>

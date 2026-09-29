@@ -563,7 +563,7 @@ export default function Onboarding() {
       </div>
 
       {/* Botões de Ação Inferiores */}
-      <div className="pt-6 border-t border-[#E1E8E2]/60 dark:border-[#2D3A34]/60">
+      <div className="pt-6 pb-2 border-t border-[#E1E8E2]/60 dark:border-[#2D3A34]/60">
         <RecomecaButton
           variant="primary"
           size="lg"

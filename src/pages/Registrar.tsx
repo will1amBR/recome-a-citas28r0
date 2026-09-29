@@ -326,28 +326,28 @@ export default function Registrar() {
                 {/* Horários e cálculo automático */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Chegada
+                    <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1 truncate">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      <span>Chegada</span>
                     </label>
                     <input
                       type="time"
                       value={arrivalTime}
                       onChange={(e) => setArrivalTime(e.target.value)}
-                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                      className="w-full min-h-[42px] px-2.5 py-2 rounded-xl text-xs font-semibold bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Saída
+                    <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1 truncate">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      <span>Saída</span>
                     </label>
                     <input
                       type="time"
                       value={departureTime}
                       onChange={(e) => setDepartureTime(e.target.value)}
-                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                      className="w-full min-h-[42px] px-2.5 py-2 rounded-xl text-xs font-semibold bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
                     />
                   </div>
                 </div>

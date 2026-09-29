@@ -126,7 +126,7 @@ export default function SOS() {
           <a
             href={`tel:+55${MOCK_CONTACT.phone.replace(/\D/g, '')}`}
             className={cn(
-              'flex items-center justify-between p-4 rounded-2xl',
+              'flex flex-wrap items-center justify-between gap-2 p-3.5 sm:p-4 rounded-2xl',
               'bg-[#E86A4C] hover:bg-[#D95C3F] dark:bg-[#F07856] dark:hover:bg-[#FF8A6A]',
               'text-white font-bold text-sm tracking-tight',
               'shadow-[0_8px_24px_rgba(232,106,76,0.35)]',
@@ -134,18 +134,18 @@ export default function SOS() {
             )}
             aria-label={`Ligar para seu contato de emergência: ${MOCK_CONTACT.name}`}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                 <PhoneCall className="w-5 h-5 text-white" />
               </div>
-              <div className="text-left">
-                <span className="block text-xs opacity-90 font-medium">
+              <div className="text-left min-w-0">
+                <span className="block text-xs opacity-90 font-medium truncate">
                   Ligar para contato de apoio
                 </span>
-                <span className="text-base font-bold">{MOCK_CONTACT.name}</span>
+                <span className="text-base font-bold truncate block">{MOCK_CONTACT.name}</span>
               </div>
             </div>
-            <span className="text-xs font-semibold underline tabular-nums opacity-95">
+            <span className="text-xs font-semibold underline tabular-nums opacity-95 shrink-0 ml-auto">
               {MOCK_CONTACT.displayPhone}
             </span>
           </a>
@@ -156,26 +156,28 @@ export default function SOS() {
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              'flex items-center justify-between p-4 rounded-2xl',
+              'flex flex-wrap items-center justify-between gap-2 p-3.5 sm:p-4 rounded-2xl',
               'bg-[#4CAF7D] hover:bg-[#3d9668] text-white font-bold text-sm',
               'shadow-[0_4px_16px_rgba(76,175,125,0.3)]',
               'transition-all touch-target focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4CAF7D]',
             )}
             aria-label={`Enviar mensagem no WhatsApp para ${MOCK_CONTACT.name}`}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                 <MessageCircle className="w-5 h-5 text-white" />
               </div>
-              <div className="text-left">
-                <span className="block text-xs opacity-90 font-medium">
+              <div className="text-left min-w-0">
+                <span className="block text-xs opacity-90 font-medium truncate">
                   WhatsApp com mensagem pronta
                 </span>
-                <span className="text-sm font-bold">Mandar mensagem para {MOCK_CONTACT.name}</span>
+                <span className="text-sm font-bold truncate block">
+                  Mandar mensagem para {MOCK_CONTACT.name}
+                </span>
               </div>
             </div>
             {coords && (
-              <span className="text-[11px] font-semibold flex items-center gap-1 bg-white/20 px-2 py-1 rounded-lg">
+              <span className="text-[11px] font-semibold flex items-center gap-1 bg-white/20 px-2 py-1 rounded-lg shrink-0 ml-auto">
                 <MapPin className="w-3 h-3" /> com mapa
               </span>
             )}
@@ -258,7 +260,7 @@ export default function SOS() {
             3. QUER REGISTRAR O QUE ACONTECEU?
            ============================================================= */}
         <section className="space-y-2">
-          <RecomecaCard variant="default" padding="lg" className="space-y-3 text-center">
+          <RecomecaCard variant="default" padding="md" className="space-y-3 text-center">
             <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
               Passou o pior momento?
             </span>
@@ -269,10 +271,10 @@ export default function SOS() {
               Escrever enquanto as lembranças estão frescas ajuda a identificar gatilhos e a se
               proteger na próxima vez.
             </p>
-            <div className="pt-2">
+            <div className="pt-1">
               <Link to="/registrar">
                 <RecomecaButton
-                  variant="primary"
+                  variant="secondary"
                   size="md"
                   fullWidth
                   leftIcon={<PenLine className="w-4 h-4" />}

@@ -39,49 +39,49 @@ export default function Layout() {
         {/* Conteúdo Principal com padding inferior suficiente para não cobrir pela barra fixa */}
         <main
           className={cn(
-            'flex-1 flex flex-col w-full',
+            'flex-1 flex flex-col w-full min-w-0 overflow-x-hidden',
             !isOnboarding && !isLanding && 'pb-28', // Espaço para nav inferior + botão SOS
-            isLanding && 'pb-16',
+            isLanding && 'pb-24', // Espaço seguro para o botão SOS flutuante
+            isOnboarding && 'pb-24',
           )}
         >
           <Outlet />
         </main>
 
         {/* -------------------------------------------------------------
-            Botão SOS Flutuante Fixo (Visível em TODAS as telas)
+            Botão SOS Flutuante Fixo (Visível em TODAS as telas, inclusive landing e onboarding)
             - Coral exclusivo (#E86A4C / dark #F07856)
-            - Z-index mais alto (60)
+            - Z-index alto (60)
             - Alvo de toque >= 44px
-            - Posicionado no canto inferior direito dentro do shell mobile
+            - Posicionado sem cobrir botões primários da tela nem abas inferiores
            ------------------------------------------------------------- */}
         {!isSOS && (
           <aside
             aria-label="Apoio emergencial"
-            className={cn(
-              'fixed z-[60] bottom-20 right-4 sm:right-6',
-              // Em telas desktop centralizadas, posicionamos suavemente em relação à viewport ou container
-              'pointer-events-none',
-            )}
+            className="fixed z-[60] bottom-20 right-3 min-[400px]:right-4 sm:right-6 pointer-events-none"
           >
-            <div className="max-w-[460px] mx-auto flex justify-end pointer-events-auto">
+            <div className="pointer-events-auto">
               <button
                 type="button"
                 onClick={() => navigate('/sos')}
                 aria-label="Preciso de ajuda agora. Abrir tela de emergência SOS."
                 className={cn(
-                  'group flex items-center gap-2 pl-3.5 pr-4 py-3 rounded-full',
+                  'group flex items-center gap-1.5 min-[360px]:gap-2 pl-3 pr-3.5 min-[380px]:pl-3.5 min-[380px]:pr-4 py-2.5 min-[380px]:py-3 rounded-full',
                   'bg-[#E86A4C] hover:bg-[#D95C3F] dark:bg-[#F07856] dark:hover:bg-[#FF8A6A]',
-                  'text-white font-bold text-sm tracking-tight',
+                  'text-white font-bold text-xs min-[380px]:text-sm tracking-tight',
                   'shadow-[0_8px_24px_rgba(232,106,76,0.38)] hover:shadow-[0_10px_28px_rgba(232,106,76,0.48)]',
                   'transition-all duration-200 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E86A4C]',
                   'touch-target cursor-pointer border border-white/20',
                 )}
               >
-                <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center animate-pulse">
-                  <PhoneCall className="w-4 h-4 text-white" aria-hidden="true" />
+                <div className="w-6 h-6 min-[380px]:w-7 min-[380px]:h-7 rounded-full bg-white/20 flex items-center justify-center animate-pulse shrink-0">
+                  <PhoneCall
+                    className="w-3.5 h-3.5 min-[380px]:w-4 min-[380px]:h-4 text-white"
+                    aria-hidden="true"
+                  />
                 </div>
-                <span className="tabular-nums">SOS</span>
-                <span className="hidden min-[380px]:inline text-xs font-semibold opacity-95">
+                <span className="tabular-nums font-bold">SOS</span>
+                <span className="inline text-[11px] min-[380px]:text-xs font-semibold opacity-95 whitespace-nowrap">
                   Preciso de ajuda
                 </span>
               </button>

@@ -152,19 +152,19 @@ export default function Apoio() {
                       href={org.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] hover:bg-[#7FBFA8]/20 text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] transition-colors touch-target"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] hover:bg-[#7FBFA8]/20 text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] transition-colors touch-target max-w-full"
                     >
-                      <span>Acessar site oficial</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span className="truncate">Acessar site oficial</span>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                     </a>
 
                     {org.phone && (
                       <a
                         href={`tel:${org.phone}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/40 hover:bg-[#E8F3EC] text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] transition-colors touch-target"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/40 hover:bg-[#E8F3EC] text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] transition-colors touch-target max-w-full"
                       >
-                        <PhoneCall className="w-3.5 h-3.5 text-[#E86A4C]" />
-                        <span>{org.phoneDisplay || `Ligar ${org.phone}`}</span>
+                        <PhoneCall className="w-3.5 h-3.5 text-[#E86A4C] shrink-0" />
+                        <span className="truncate">{org.phoneDisplay || `Ligar ${org.phone}`}</span>
                       </a>
                     )}
                   </div>
@@ -240,7 +240,7 @@ export default function Apoio() {
                       onChange={(e) => setNewMedName(e.target.value)}
                     />
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2">
                       <RecomecaInput
                         label="Médico responsável"
                         placeholder="Ex.: Dr. André"
@@ -248,15 +248,15 @@ export default function Apoio() {
                         onChange={(e) => setNewMedDoctor(e.target.value)}
                       />
 
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                      <div className="space-y-1 text-left">
+                        <label className="text-sm font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
                           Horário receitado
                         </label>
                         <input
                           type="time"
                           value={newMedTime}
                           onChange={(e) => setNewMedTime(e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                          className="w-full min-h-[46px] px-3 py-2.5 rounded-xl text-xs font-semibold bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
                         />
                       </div>
                     </div>

@@ -126,7 +126,6 @@ export default function Trocar() {
                 esse tempo ao seu corpo.
               </p>
             </div>
-
             {/* Mostrador do Relógio com Anel de Progresso SVG */}
             <div className="relative w-48 h-48 mx-auto flex items-center justify-center my-2">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -166,12 +165,12 @@ export default function Trocar() {
                 </span>
               </div>
             </div>
-
             {/* Controles do Timer */}
-            <div className="flex items-center justify-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1 w-full max-w-xs mx-auto">
               <RecomecaButton
                 variant="primary"
                 size="md"
+                className="flex-1"
                 onClick={() => setIsTimerRunning((r) => !r)}
                 leftIcon={
                   isTimerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />
@@ -184,11 +183,11 @@ export default function Trocar() {
                 type="button"
                 onClick={handleResetTimer}
                 aria-label="Reiniciar timer para 15 minutos"
-                className="w-10 h-10 rounded-2xl bg-[#FDFAF5] dark:bg-[#1C2420] text-[#6A7A72] dark:text-[#A0B0A7] border border-[#E1E8E2] dark:border-[#2D3A34] hover:bg-[#E8F3EC] flex items-center justify-center transition-colors touch-target"
+                className="w-12 h-12 rounded-2xl bg-[#FDFAF5] dark:bg-[#1C2420] text-[#6A7A72] dark:text-[#A0B0A7] border border-[#E1E8E2] dark:border-[#2D3A34] hover:bg-[#E8F3EC] dark:hover:bg-[#2A3831] flex items-center justify-center transition-colors touch-target shrink-0"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
-            </div>
+            </div>{' '}
           </RecomecaCard>
         </section>
 

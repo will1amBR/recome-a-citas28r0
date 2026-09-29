@@ -47,7 +47,7 @@ export default function Index() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <Link to="/hoje" className="hidden sm:inline-block">
+            <Link to="/hoje" className="hidden min-[480px]:inline-block">
               <RecomecaButton variant="secondary" size="sm">
                 Abrir app
               </RecomecaButton>
@@ -72,19 +72,19 @@ export default function Index() {
            ============================================================= */}
         <section className="text-center space-y-6 pt-2 sm:pt-4 animate-fade-in-up">
           {/* Badge de boas-vindas */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] border border-[#7FBFA8]/30">
-            <span className="w-2 h-2 rounded-full bg-[#4CAF7D] animate-pulse" />
-            Um espaço calmo e sem julgamento
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] border border-[#7FBFA8]/30 max-w-full">
+            <span className="w-2 h-2 rounded-full bg-[#4CAF7D] animate-pulse shrink-0" />
+            <span className="truncate">Um espaço calmo e sem julgamento</span>
           </div>
 
           {/* Nome e frase-guia */}
-          <div className="space-y-3">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9] leading-[1.15]">
+          <div className="space-y-3 break-words">
+            <h1 className="text-2xl min-[360px]:text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9] leading-[1.15]">
               Controle seus vícios.
               <br />
               <span className="text-[#6DA98F] dark:text-[#8FCCAE]">Um dia de cada vez.</span>
             </h1>
-            <p className="text-lg sm:text-xl font-semibold text-[#6A7A72] dark:text-[#A0B0A7] max-w-lg mx-auto">
+            <p className="text-base sm:text-xl font-semibold text-[#6A7A72] dark:text-[#A0B0A7] max-w-lg mx-auto leading-snug">
               Recomeçar faz parte. Aqui não há culpa, não há pressa e sua história nunca é zerada.
             </p>
           </div>
@@ -97,20 +97,20 @@ export default function Index() {
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link to="/onboarding" className="w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 w-full max-w-md mx-auto">
+            <Link to="/onboarding" className="w-full sm:w-auto flex-1">
               <RecomecaButton
                 variant="primary"
                 size="lg"
                 fullWidth
                 rightIcon={<ArrowRight className="w-5 h-5" />}
               >
-                Começar minha jornada
+                Começar agora
               </RecomecaButton>
             </Link>
-            <Link to="/hoje" className="w-full sm:w-auto">
+            <Link to="/hoje" className="w-full sm:w-auto flex-1">
               <RecomecaButton variant="secondary" size="lg" fullWidth>
-                Ver demonstração do app
+                Ver demonstração
               </RecomecaButton>
             </Link>
           </div>
@@ -122,19 +122,19 @@ export default function Index() {
               padding="lg"
               className="text-center relative overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-3 text-xs sm:text-sm font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
-                <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE]" />
-                  Exemplo de jornada real
+              <div className="flex items-center justify-between gap-2 mb-3 text-xs sm:text-sm font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                <span className="inline-flex items-center gap-1.5 truncate">
+                  <CalendarDays className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE] shrink-0" />
+                  <span className="truncate">Exemplo de jornada real</span>
                 </span>
-                <MilestoneBadge days={21} label="Primeiro marco" size="sm" />
+                <MilestoneBadge days={21} label="Primeiro marco" size="sm" className="shrink-0" />
               </div>
 
               <div className="py-2">
-                <span className="text-5xl sm:text-6xl font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                <span className="text-4xl min-[360px]:text-5xl sm:text-6xl font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
                   21
                 </span>
-                <p className="text-sm sm:text-base font-semibold text-[#6A7A72] dark:text-[#A0B0A7] mt-1">
+                <p className="text-xs min-[360px]:text-sm sm:text-base font-semibold text-[#6A7A72] dark:text-[#A0B0A7] mt-1">
                   dias limpos agora
                 </p>
               </div>
@@ -564,38 +564,42 @@ export default function Index() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block mb-2">
               Redes públicas e gratuitas de acolhimento
             </span>
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#2F4A3E] dark:text-[#8FCCAE]">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2 text-xs text-[#2F4A3E] dark:text-[#8FCCAE]">
               <a
                 href="https://www.aa.org.br/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:underline inline-flex items-center gap-1"
+                className="hover:underline inline-flex items-center gap-1 truncate"
               >
-                A.A. (Alcoólicos Anônimos) <ExternalLink className="w-3 h-3" />
+                <span className="truncate">A.A. (Alcoólicos Anônimos)</span>{' '}
+                <ExternalLink className="w-3 h-3 shrink-0" />
               </a>
               <a
                 href="https://www.na.org.br/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:underline inline-flex items-center gap-1"
+                className="hover:underline inline-flex items-center gap-1 truncate"
               >
-                N.A. (Narcóticos Anônimos) <ExternalLink className="w-3 h-3" />
+                <span className="truncate">N.A. (Narcóticos Anônimos)</span>{' '}
+                <ExternalLink className="w-3 h-3 shrink-0" />
               </a>
               <a
                 href="https://cvv.org.br/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:underline inline-flex items-center gap-1"
+                className="hover:underline inline-flex items-center gap-1 truncate"
               >
-                CVV 188 <ExternalLink className="w-3 h-3" />
+                <span className="truncate">CVV 188 (24h)</span>{' '}
+                <ExternalLink className="w-3 h-3 shrink-0" />
               </a>
               <a
                 href="https://www.gov.br/saude/pt-br/composicao/saes/desmad/raps/caps"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:underline inline-flex items-center gap-1"
+                className="hover:underline inline-flex items-center gap-1 truncate"
               >
-                CAPS AD (SUS) <ExternalLink className="w-3 h-3" />
+                <span className="truncate">CAPS AD (SUS)</span>{' '}
+                <ExternalLink className="w-3 h-3 shrink-0" />
               </a>
             </div>
           </div>

@@ -151,11 +151,11 @@ export default function Hoje() {
 
                   {/* Número Gigante Mobile / Tablet */}
                   <div className="py-2 text-center">
-                    <div className="flex items-baseline justify-center gap-2">
-                      <span className="text-6xl sm:text-7xl font-bold tabular-nums tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    <div className="flex flex-wrap items-baseline justify-center gap-1.5 min-[360px]:gap-2">
+                      <span className="text-5xl min-[360px]:text-6xl sm:text-7xl font-bold tabular-nums tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9]">
                         {habit.currentStreakDays}
                       </span>
-                      <span className="text-sm sm:text-base font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                      <span className="text-xs min-[360px]:text-sm sm:text-base font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
                         dias limpos agora
                       </span>
                     </div>
@@ -169,20 +169,20 @@ export default function Hoje() {
 
                   {/* Histórico que NÃO zera tudo: Melhor sequência e dias no mês */}
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#7FBFA8]/20 dark:border-[#8FCCAE]/20">
-                    <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] text-center">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                    <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] text-center min-w-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
                         Melhor Sequência
                       </span>
-                      <span className="text-lg font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      <span className="text-base min-[360px]:text-lg font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9] block truncate">
                         {habit.bestStreakDays} dias
                       </span>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] text-center">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                    <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] text-center min-w-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
                         Dias Livres no Mês
                       </span>
-                      <span className="text-lg font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      <span className="text-base min-[360px]:text-lg font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9] block truncate">
                         {habit.cleanDaysThisMonth} dias
                       </span>
                     </div>
@@ -213,22 +213,22 @@ export default function Hoje() {
         {reductionHabit && (
           <section className="space-y-2">
             <RecomecaCard variant="default" padding="md" className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] dark:text-[#8FCCAE] flex items-center justify-center">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] dark:text-[#8FCCAE] flex items-center justify-center shrink-0">
                     <Coffee className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
                       Meta do dia: {reductionHabit.name}
                     </h3>
-                    <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                    <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] truncate">
                       Hoje até {reductionHabit.dailyLimit} {reductionHabit.unit || 'unidades'}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-[#FDFAF5] dark:bg-[#1C2420] p-1 rounded-xl border border-[#E1E8E2] dark:border-[#2D3A34]">
+                <div className="flex items-center gap-1.5 bg-[#FDFAF5] dark:bg-[#1C2420] p-1 rounded-xl border border-[#E1E8E2] dark:border-[#2D3A34] shrink-0 ml-auto">
                   <button
                     type="button"
                     onClick={handleDecrementReduction}
@@ -322,12 +322,12 @@ export default function Hoje() {
                   <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
                     2. Usou alguma substância hoje?
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 min-[380px]:gap-2">
                     <button
                       type="button"
                       onClick={() => setUsedToday('nao')}
                       className={cn(
-                        'py-2.5 px-2 rounded-xl text-xs font-bold border transition-all touch-target',
+                        'py-2.5 px-1.5 min-[380px]:px-2 rounded-xl text-[11px] min-[380px]:text-xs font-bold border transition-all touch-target text-center leading-tight',
                         usedToday === 'nao'
                           ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
                           : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
@@ -339,25 +339,25 @@ export default function Hoje() {
                       type="button"
                       onClick={() => setUsedToday('reduzido')}
                       className={cn(
-                        'py-2.5 px-2 rounded-xl text-xs font-bold border transition-all touch-target',
+                        'py-2.5 px-1.5 min-[380px]:px-2 rounded-xl text-[11px] min-[380px]:text-xs font-bold border transition-all touch-target text-center leading-tight',
                         usedToday === 'reduzido'
                           ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
                           : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
                       )}
                     >
-                      Usei na meta
+                      Na meta
                     </button>
                     <button
                       type="button"
                       onClick={() => setUsedToday('sim')}
                       className={cn(
-                        'py-2.5 px-2 rounded-xl text-xs font-bold border transition-all touch-target',
+                        'py-2.5 px-1.5 min-[380px]:px-2 rounded-xl text-[11px] min-[380px]:text-xs font-bold border transition-all touch-target text-center leading-tight',
                         usedToday === 'sim'
                           ? 'bg-[#E8A84C] text-white border-transparent shadow-sm'
                           : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
                       )}
                     >
-                      Tive episódio
+                      Episódio
                     </button>
                   </div>
 
