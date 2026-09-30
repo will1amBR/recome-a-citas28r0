@@ -6,7 +6,7 @@ import {
   ScreenHeader,
   LegalNoticeFooter,
 } from '@/components/recomeca'
-import { MOCK_CONTACT } from '@/lib/mockData'
+import { MOCK_CONTACT, CRAVING_PROTOCOLS } from '@/lib/mockData'
 import { ambientAudio } from '@/lib/ambientSound'
 import {
   PhoneCall,
@@ -22,6 +22,9 @@ import {
   Volume2,
   VolumeX,
   Music,
+  Shuffle,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -317,7 +320,72 @@ export default function SOS() {
         </section>
 
         {/* =============================================================
-            3. QUER REGISTRAR O QUE ACONTECEU?
+            3. KIT DE TÉCNICAS RÁPIDAS PARA A FISSURA
+           ============================================================= */}
+        <section className="space-y-3" aria-label="Kit de técnicas para a fissura">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+              Kit de técnicas para a fissura
+            </span>
+            <Link
+              to="/trocar"
+              className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline flex items-center gap-1"
+            >
+              <span>Ver todas</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {CRAVING_PROTOCOLS.slice(0, 3).map((protocol) => (
+              <Link
+                key={protocol.id}
+                to="/trocar"
+                className="p-3 rounded-2xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8] transition-all touch-target text-left flex flex-col justify-between space-y-1.5 group"
+              >
+                <div>
+                  <span className="text-[10px] font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] block">
+                    {protocol.timeLabel} • {protocol.approach.split('/')[0].trim()}
+                  </span>
+                  <h4 className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] group-hover:text-[#6DA98F] transition-colors leading-snug">
+                    {protocol.title}
+                  </h4>
+                </div>
+                <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] line-clamp-2 leading-tight">
+                  {protocol.summary}
+                </p>
+                <span className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1 pt-1">
+                  <span>Praticar agora</span>
+                  <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Atalho para Trocar de Hábito */}
+          <Link
+            to="/trocar"
+            className="flex items-center justify-between p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/40 hover:border-[#7FBFA8] transition-all group touch-target"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#7FBFA8] text-white flex items-center justify-center shrink-0">
+                <Shuffle className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                  Fazer outra atividade enquanto a onda passa
+                </span>
+                <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block">
+                  Sugestões de 2 min, 10 min e 30 min (água, banho, caminhada, chá)
+                </span>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#6A7A72] group-hover:translate-x-1 transition-transform shrink-0" />
+          </Link>
+        </section>
+
+        {/* =============================================================
+            4. QUER REGISTRAR O QUE ACONTECEU?
            ============================================================= */}
         <section className="space-y-2">
           <RecomecaCard variant="default" padding="md" className="space-y-3 text-center">

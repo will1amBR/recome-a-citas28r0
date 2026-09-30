@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Heart,
   Plus,
+  ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -361,6 +362,95 @@ export default function Diario() {
                     </span>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Bloco: O que funcionou nas fissuras */}
+            <div className="space-y-2 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#7FBFA8]" />
+                  <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    O que funcionou nas fissuras ({MOCK_MONTHLY_MIRROR.monthName})
+                  </span>
+                </div>
+                <span className="text-[10px] font-semibold text-[#4CAF7D] bg-[#E8F3EC] dark:bg-[#2A3831] px-2 py-0.5 rounded-full">
+                  Dados de Camila
+                </span>
+              </div>
+              <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                Técnicas e trocas de atividade registradas durante as ondas do mês, com a taxa de
+                ondas que passaram sem uso:
+              </p>
+
+              <div className="space-y-2">
+                {MOCK_MONTHLY_MIRROR.cravingTechniquesEffectiveness.map((tech) => (
+                  <div
+                    key={tech.id}
+                    className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={cn(
+                            'text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0',
+                            tech.category === 'atividade'
+                              ? 'bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] dark:text-[#8FCCAE]'
+                              : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#7FBFA8] dark:text-[#8FCCAE]',
+                          )}
+                        >
+                          {tech.category}
+                        </span>
+                        <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
+                          {tech.name}
+                        </span>
+                      </div>
+                      <span className="font-bold tabular-nums text-[#4CAF7D] shrink-0 ml-2">
+                        {tech.percentagePassed}% de calma
+                      </span>
+                    </div>
+
+                    {/* Barra de desfecho */}
+                    <div className="w-full h-2 rounded-full bg-[#E1E8E2] dark:bg-[#2D3A34] overflow-hidden flex">
+                      <div
+                        className="bg-[#7FBFA8] dark:bg-[#8FCCAE] h-full transition-all duration-300"
+                        style={{ width: `${tech.percentagePassed}%` }}
+                        title={`${tech.passedWithoutUsingCount} passaram sem usar`}
+                      />
+                      {tech.usedAfterCount > 0 && (
+                        <div
+                          className="bg-[#E8A84C] h-full transition-all duration-300"
+                          style={{ width: `${100 - tech.percentagePassed}%` }}
+                          title={`${tech.usedAfterCount} usou depois`}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                      <span>Usada {tech.count}x no mês</span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-[#4CAF7D] dark:text-[#8FCCAE]">
+                          ● {tech.passedWithoutUsingCount} passou sem usar
+                        </span>
+                        {tech.usedAfterCount > 0 && (
+                          <span className="text-[#E8A84C]">
+                            ● {tech.usedAfterCount} usei depois
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-2 rounded-xl bg-[#E8F3EC]/60 dark:bg-[#2A3831]/60 text-[11px] text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center justify-between">
+                <span>
+                  💡 Nas suas fissuras, <strong>caminhar</strong> e{' '}
+                  <strong>a regra dos 15 minutos</strong> foram as respostas mais frequentes.
+                </span>
+                <Link to="/trocar" className="underline font-bold shrink-0 ml-2">
+                  Trocar agora
+                </Link>
               </div>
             </div>
 

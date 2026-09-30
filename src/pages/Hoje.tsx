@@ -338,6 +338,30 @@ export default function Hoje() {
                     métricas reais sobre seus horários e gatilhos.
                   </p>
                 </div>
+                {/* Cartão de reforço gentil pós check-in com técnica mais usada */}
+                <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/40 text-left space-y-2 max-w-sm mx-auto">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#7FBFA8] shrink-0" />
+                    <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      O que mais te ajudou nas últimas fissuras
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                    Nas suas últimas fissuras registradas, o que mais te ajudou foi:{' '}
+                    <strong>caminhada curta no parque ou na calçada</strong> (89% de alívio). Quer
+                    tentar de novo quando bater vontade?
+                  </p>
+                  <div className="pt-1 flex items-center justify-between">
+                    <Link
+                      to="/trocar"
+                      className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] hover:underline flex items-center gap-1"
+                    >
+                      <span>Abrir kit de técnicas e troca</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+
                 <div className="pt-2 flex justify-center gap-3">
                   <button
                     type="button"
