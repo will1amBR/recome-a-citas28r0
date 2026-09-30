@@ -11,6 +11,7 @@ interface NavTab {
 
 const NAV_TABS: NavTab[] = [
   { path: '/hoje', label: 'Hoje', icon: Sun },
+  { path: '/plano', label: 'Plano', icon: Sparkles },
   { path: '/registrar', label: 'Registrar', icon: PenLine },
   { path: '/diario', label: 'Diário', icon: BookOpen },
   { path: '/apoio', label: 'Apoio', icon: HeartHandshake },

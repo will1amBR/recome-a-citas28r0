@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RecomecaButton, RecomecaCard, RecomecaInput, ProgressBar } from '@/components/recomeca'
 import { useRecomecaStore } from '@/lib/recomecaStore'
-import { ONBOARDING_SUBSTANCES } from '@/lib/mockData'
+import { ONBOARDING_SUBSTANCES, DEFAULT_RISK_SITUATIONS } from '@/lib/mockData'
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,10 +25,14 @@ interface HabitDetailConfig {
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { contact, updateContact } = useRecomecaStore()
+  const { contact, updateContact, userRiskSituations, setUserRiskSituations } = useRecomecaStore()
 
   // Etapa atual: 1 a 5
   const [currentStep, setCurrentStep] = React.useState<number>(1)
+
+  // Situações de risco selecionadas gentilmente
+  const [selectedRisks, setSelectedRisks] = React.useState<string[]>(userRiskSituations || [])
+  const [customRiskInput, setCustomRiskInput] = React.useState<string>('')
 
   // 1) Escolhas de substâncias/hábitos
   const [selectedSubstances, setSelectedSubstances] = React.useState<string[]>(['alcool', 'cafe'])
@@ -101,6 +105,26 @@ export default function Onboarding() {
     }))
   }
 
+  const toggleRiskSituation = (label: string) => {
+    setSelectedRisks((prev) => {
+      const exists = prev.includes(label)
+      const next = exists ? prev.filter((r) => r !== label) : [...prev, label]
+      setUserRiskSituations(next)
+      return next
+    })
+  }
+
+  const handleAddCustomRisk = () => {
+    const trimmed = customRiskInput.trim()
+    if (!trimmed) return
+    if (!selectedRisks.includes(trimmed)) {
+      const next = [...selectedRisks, trimmed]
+      setSelectedRisks(next)
+      setUserRiskSituations(next)
+    }
+    setCustomRiskInput('')
+  }
+
   const handleNext = () => {
     setValidationError('')
     if (currentStep === 1) {
@@ -143,6 +167,10 @@ export default function Onboarding() {
       if (!lgpdConsent) {
         setValidationError('Precisamos do seu consentimento para proteger seus dados e continuar.')
         return
+      }
+      // Salva situações de risco selecionadas
+      if (selectedRisks.length > 0) {
+        setUserRiskSituations(selectedRisks)
       }
       // Conclui onboarding e vai para a tela principal
       navigate('/hoje')
@@ -536,19 +564,99 @@ export default function Onboarding() {
         )}
 
         {/* =============================================================
-            ETAPA 5: Consentimento LGPD e Começar agora
+            ETAPA 5: Situações de Risco (opcional) + Consentimento LGPD & Início
            ============================================================= */}
         {currentStep === 5 && (
           <div className="space-y-5 animate-fade-in">
             <div className="space-y-1.5">
               <h2 className="text-2xl font-bold tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9]">
-                Tudo pronto para começar
+                Seus momentos e início seguro
               </h2>
               <p className="text-sm text-[#6A7A72] dark:text-[#A0B0A7]">
-                Seu espaço seguro de autocuidado está pronto.
+                Entender onde a onda costuma apertar ajuda o app a sugerir ações práticas na hora
+                certa. Tudo opcional.
               </p>
             </div>
 
+            {/* Pergunta gentil de Situações de Risco (ex: Diego com pressão / novo emprego / ansiedade) */}
+            <RecomecaCard
+              variant="default"
+              padding="md"
+              className="space-y-3.5 border-l-4 border-l-[#7FBFA8]"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                    Autoconhecimento • Tudo opcional
+                  </span>
+                  <h3 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Quais situações costumam te levar a usar?
+                  </h3>
+                </div>
+                <span className="text-[10px] font-semibold text-[#4CAF7D] bg-[#E8F3EC] dark:bg-[#2A3831] px-2 py-0.5 rounded-full">
+                  Pode pular
+                </span>
+              </div>
+
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                Toque nas que fazem sentido para você. Usamos isso para sugerir ações do plano do
+                dia (como ir ao parque ou academia) antes da vontade virar bar:
+              </p>
+
+              {/* Chips de seleção rápida */}
+              <div className="flex flex-wrap gap-1.5">
+                {DEFAULT_RISK_SITUATIONS.map((risk) => {
+                  const isSelected = selectedRisks.includes(risk.label)
+                  return (
+                    <button
+                      key={risk.id}
+                      type="button"
+                      onClick={() => toggleRiskSituation(risk.label)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-xl text-xs font-semibold text-left border transition-all touch-target flex items-center gap-1.5',
+                        isSelected
+                          ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-xs'
+                          : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8]',
+                      )}
+                    >
+                      <span>{risk.label}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Campo livre para outra situação */}
+              <div className="pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34] space-y-1.5">
+                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                  Outra situação de risco pessoal (opcional):
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Ex: Fim do expediente na sexta, briga em família..."
+                    value={customRiskInput}
+                    onChange={(e) => setCustomRiskInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleAddCustomRisk()
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 rounded-xl text-xs bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomRisk}
+                    className="px-3 py-2 rounded-xl text-xs font-bold bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8]/20 transition-colors shrink-0"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+            </RecomecaCard>
+
+            {/* Compromisso e Consentimento LGPD */}
             <RecomecaCard variant="highlight" padding="lg" className="space-y-4">
               <div className="flex items-center gap-2 text-[#2F4A3E] dark:text-[#8FCCAE] font-bold text-sm">
                 <Sparkles className="w-5 h-5" />

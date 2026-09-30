@@ -15,6 +15,7 @@ import Diario from './pages/Diario'
 import SOS from './pages/SOS'
 import Apoio from './pages/Apoio'
 import Perfil from './pages/Perfil'
+import Plano from './pages/Plano'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
 // AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/hoje" element={<Hoje />} />
+            <Route path="/plano" element={<Plano />} />
             <Route path="/registrar" element={<Registrar />} />
             <Route path="/trocar" element={<Trocar />} />
             <Route path="/diario" element={<Diario />} />

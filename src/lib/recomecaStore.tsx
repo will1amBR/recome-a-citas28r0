@@ -7,6 +7,9 @@ import {
   CigaretteLogItem,
   EpisodeLog,
   SubstanceDetails,
+  DailyScheduleTask,
+  DayTaskCompletionLog,
+  DEFAULT_DAILY_SCHEDULE_TASKS,
   MOCK_TRACKED_HABITS,
   MOCK_MONTHLY_MIRROR,
   MOCK_CONTACT,
@@ -21,6 +24,9 @@ const STORAGE_KEY_CONTACT = 'recomeca_contact_v1'
 const STORAGE_KEY_CIGARETTE_LOGS = 'recomeca_cigarette_logs_v1'
 const STORAGE_KEY_EPISODES = 'recomeca_episodes_v1'
 const STORAGE_KEY_ACTIVE_HABIT = 'recomeca_active_habit_v1'
+const STORAGE_KEY_DAILY_TASKS = 'recomeca_daily_tasks_v1'
+const STORAGE_KEY_TASK_LOGS = 'recomeca_task_logs_v1'
+const STORAGE_KEY_RISK_SITUATIONS = 'recomeca_risk_situations_v1'
 
 const INITIAL_GOOD_ACTIONS: GoodActionRecord[] = [
   {
@@ -48,6 +54,25 @@ export interface RecomecaStore {
   contact: SupportContact
   cigaretteLogs: CigaretteLogItem[]
   episodeLogs: EpisodeLog[]
+  // Plano do Dia e Rotina
+  scheduleTasks: DailyScheduleTask[]
+  taskCompletionLogs: DayTaskCompletionLog[]
+  todayCompletedTaskIds: string[]
+  toggleTaskCompletionToday: (taskId: string) => { completed: boolean; message: string }
+  addCustomScheduleTask: (task: {
+    title: string
+    subtitle?: string
+    category: DailyScheduleTask['category']
+    isPhysicalAlternativeToCravings?: boolean
+  }) => void
+  removeScheduleTask: (taskId: string) => void
+  resetScheduleTasksToDefault: () => void
+  // Situações de Risco do Usuário
+  userRiskSituations: string[]
+  setUserRiskSituations: (situations: string[]) => void
+  addUserRiskSituation: (situation: string) => void
+  removeUserRiskSituation: (situation: string) => void
+  // Ações de apoio e hábitos
   updateContact: (contact: Partial<SupportContact>) => void
   addGoodAction: (action: Omit<GoodActionRecord, 'id' | 'timestamp'>) => void
   recordTechniqueCompletion: (
@@ -150,6 +175,91 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
     return [MOCK_LAST_EPISODE]
   })
 
+  // Lista de tarefas do cronograma / Plano do Dia
+  const [scheduleTasks, setScheduleTasks] = React.useState<DailyScheduleTask[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_DAILY_TASKS)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // fallback
+    }
+    return DEFAULT_DAILY_SCHEDULE_TASKS
+  })
+
+  // Logs de conclusão de tarefas por data
+  const [taskCompletionLogs, setTaskCompletionLogs] = React.useState<DayTaskCompletionLog[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_TASK_LOGS)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // fallback
+    }
+    // Dados iniciais acolhedores para os últimos dias para ilustrar a visão semanal
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    const yesterdayStr = d.toISOString().slice(0, 10)
+    d.setDate(d.getDate() - 1)
+    const twoDaysAgoStr = d.toISOString().slice(0, 10)
+
+    return [
+      {
+        date: twoDaysAgoStr,
+        taskId: 'task-academia',
+        taskTitle: 'Academia ou exercício físico em casa',
+        completedAt: '18:10',
+      },
+      {
+        date: twoDaysAgoStr,
+        taskId: 'task-louca',
+        taskTitle: 'Lavar a louça da pia',
+        completedAt: '12:40',
+      },
+      {
+        date: yesterdayStr,
+        taskId: 'task-parque',
+        taskTitle: 'Caminhada ao ar livre ou ir ao parque',
+        completedAt: '17:30',
+      },
+      {
+        date: yesterdayStr,
+        taskId: 'task-louca',
+        taskTitle: 'Lavar a louça da pia',
+        completedAt: '13:00',
+      },
+      {
+        date: yesterdayStr,
+        taskId: 'task-piso',
+        taskTitle: 'Varrer ou passar pano no chão',
+        completedAt: '10:15',
+      },
+      {
+        date: todayStr,
+        taskId: 'task-louca',
+        taskTitle: 'Lavar a louça da pia',
+        completedAt: '09:30',
+      },
+      { date: todayStr, taskId: 'task-cama', taskTitle: 'Arrumar a cama', completedAt: '08:15' },
+    ]
+  })
+
+  // Situações de risco do usuário (onboarding / perfil / trocar)
+  const [userRiskSituations, setUserRiskSituationsState] = React.useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_RISK_SITUATIONS)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // fallback
+    }
+    // Inicial amigável alinhado ao caso do Diego (estresse, pressão, novos começos, ansiedade)
+    return [
+      'Estresse acumulado ou cansaço mental',
+      'Pressão no trabalho ou cobranças',
+      'Ansiedade ou coração acelerado',
+      'Mudanças e novos começos (novo emprego, rotina nova)',
+    ]
+  })
+
   const [lastToastMessage, setLastToastMessage] = React.useState<string | null>(null)
 
   // Vício / substância ativa selecionada para contexto em /trocar e /hoje
@@ -242,6 +352,30 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       // ignore
     }
   }, [episodeLogs])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_DAILY_TASKS, JSON.stringify(scheduleTasks))
+    } catch {
+      // ignore
+    }
+  }, [scheduleTasks])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_TASK_LOGS, JSON.stringify(taskCompletionLogs))
+    } catch {
+      // ignore
+    }
+  }, [taskCompletionLogs])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_RISK_SITUATIONS, JSON.stringify(userRiskSituations))
+    } catch {
+      // ignore
+    }
+  }, [userRiskSituations])
 
   const updateContact = React.useCallback((patch: Partial<SupportContact>) => {
     setContact((prev) => ({ ...prev, ...patch }))
@@ -489,6 +623,102 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
+  // -------------------------------------------------------------
+  // PLANO DO DIA / TAREFAS SAUDÁVEIS & DOPAMINA NATURAL
+  // -------------------------------------------------------------
+  const todayDateStr = React.useMemo(() => new Date().toISOString().slice(0, 10), [])
+
+  const todayCompletedTaskIds = React.useMemo(() => {
+    return taskCompletionLogs.filter((log) => log.date === todayDateStr).map((log) => log.taskId)
+  }, [taskCompletionLogs, todayDateStr])
+
+  const toggleTaskCompletionToday = React.useCallback(
+    (taskId: string) => {
+      const task = scheduleTasks.find((t) => t.id === taskId)
+      const now = new Date()
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      const dateStr = now.toISOString().slice(0, 10)
+      const alreadyDone = taskCompletionLogs.some((l) => l.date === dateStr && l.taskId === taskId)
+
+      if (alreadyDone) {
+        // Desmarcar se o usuário tocou por engano
+        setTaskCompletionLogs((prev) =>
+          prev.filter((l) => !(l.date === dateStr && l.taskId === taskId)),
+        )
+        return { completed: false, message: 'Tarefa desmarcada com calma.' }
+      }
+
+      // Marcar como feita
+      const newLog: DayTaskCompletionLog = {
+        date: dateStr,
+        taskId,
+        taskTitle: task?.title || 'Tarefa diária',
+        completedAt: timeStr,
+      }
+      setTaskCompletionLogs((prev) => [...prev, newLog])
+
+      const reinforcementMsg = task?.completedTodayMessage || 'Feito. Você escolheu você.'
+      addGoodAction({
+        title: `Plano do dia: ${task?.title || 'Tarefa concluída'}`,
+        type: 'tarefa-plano',
+        message: reinforcementMsg,
+      })
+
+      return { completed: true, message: reinforcementMsg }
+    },
+    [scheduleTasks, taskCompletionLogs, addGoodAction],
+  )
+
+  const addCustomScheduleTask = React.useCallback(
+    ({
+      title,
+      subtitle,
+      category,
+      isPhysicalAlternativeToCravings = false,
+    }: {
+      title: string
+      subtitle?: string
+      category: DailyScheduleTask['category']
+      isPhysicalAlternativeToCravings?: boolean
+    }) => {
+      const newTask: DailyScheduleTask = {
+        id: `custom-task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        title: title.trim(),
+        subtitle: subtitle?.trim() || 'Hábito saudável personalizado',
+        category,
+        dopamineRewardTip: 'Uma tarefa que você mesmo escolheu para cuidar do seu tempo e mente.',
+        completedTodayMessage: `Feito. ${title.trim()} concluído com sucesso. Sensação boa de ordem.`,
+        isPhysicalAlternativeToCravings,
+        isDefault: false,
+      }
+      setScheduleTasks((prev) => [...prev, newTask])
+    },
+    [],
+  )
+
+  const removeScheduleTask = React.useCallback((taskId: string) => {
+    setScheduleTasks((prev) => prev.filter((t) => t.id !== taskId))
+  }, [])
+
+  const resetScheduleTasksToDefault = React.useCallback(() => {
+    setScheduleTasks(DEFAULT_DAILY_SCHEDULE_TASKS)
+  }, [])
+
+  // Gerenciamento de situações de risco
+  const setUserRiskSituations = React.useCallback((situations: string[]) => {
+    setUserRiskSituationsState(situations)
+  }, [])
+
+  const addUserRiskSituation = React.useCallback((situation: string) => {
+    const trimmed = situation.trim()
+    if (!trimmed) return
+    setUserRiskSituationsState((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]))
+  }, [])
+
+  const removeUserRiskSituation = React.useCallback((situation: string) => {
+    setUserRiskSituationsState((prev) => prev.filter((s) => s !== situation))
+  }, [])
+
   const recordCheckinDone = React.useCallback(() => {
     addGoodAction({
       title: 'Check-in diário completo',
@@ -569,6 +799,17 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       contact,
       cigaretteLogs,
       episodeLogs,
+      scheduleTasks,
+      taskCompletionLogs,
+      todayCompletedTaskIds,
+      toggleTaskCompletionToday,
+      addCustomScheduleTask,
+      removeScheduleTask,
+      resetScheduleTasksToDefault,
+      userRiskSituations,
+      setUserRiskSituations,
+      addUserRiskSituation,
+      removeUserRiskSituation,
       updateContact,
       addGoodAction,
       recordTechniqueCompletion,
@@ -593,6 +834,17 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       contact,
       cigaretteLogs,
       episodeLogs,
+      scheduleTasks,
+      taskCompletionLogs,
+      todayCompletedTaskIds,
+      toggleTaskCompletionToday,
+      addCustomScheduleTask,
+      removeScheduleTask,
+      resetScheduleTasksToDefault,
+      userRiskSituations,
+      setUserRiskSituations,
+      addUserRiskSituation,
+      removeUserRiskSituation,
       updateContact,
       addGoodAction,
       recordTechniqueCompletion,

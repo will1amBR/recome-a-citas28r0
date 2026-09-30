@@ -42,6 +42,9 @@ import {
   HelpCircle,
   Clock,
   Compass,
+  TreePine,
+  Dumbbell,
+  Sparkle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -65,6 +68,10 @@ export default function Trocar() {
     activeHabitId,
     setActiveHabitId,
     episodeLogs,
+    userRiskSituations,
+    scheduleTasks,
+    toggleTaskCompletionToday,
+    todayCompletedTaskIds,
     recordTechniqueCompletion,
     recordActivityCompletion,
   } = useRecomecaStore()
@@ -390,6 +397,104 @@ export default function Trocar() {
             </div>
           </section>
         )}
+
+        {/* =============================================================
+            0. SITUAÇÕES DE RISCO & AÇÕES FÍSICAS DO PLANO (LÓGICA DO DIEGO)
+            Ação concreta na hora da vontade: parque, academia, caminhada, tarefas
+           ============================================================= */}
+        <section
+          aria-label="Situações de risco e ações físicas imediatas"
+          className="p-4 rounded-2xl bg-[#FDFAF5] dark:bg-[#1C2420] border-2 border-[#7FBFA8] space-y-3.5 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-xl bg-[#4CAF7D] text-white flex items-center justify-center shrink-0">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#4CAF7D] dark:text-[#8FCCAE] block">
+                  Ação concreta na hora da vontade
+                </span>
+                <h2 className="text-xs sm:text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  {userRiskSituations && userRiskSituations.length > 0
+                    ? `Você costuma usar quando: ${userRiskSituations[0]}. A onda de agora lembra essa?`
+                    : 'A onda de agora veio por estresse, pressão ou cansaço?'}
+                </h2>
+              </div>
+            </div>
+            <Link
+              to="/plano"
+              className="text-[10px] font-bold text-[#4CAF7D] hover:underline shrink-0"
+            >
+              Ver plano completo →
+            </Link>
+          </div>
+
+          <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+            Se for o caso (como o Diego antes de ir ao bar), fazer uma ação física agora desvia a
+            mente e quebra o piloto automático em minutos. Escolha uma abaixo antes das técnicas:
+          </p>
+
+          {/* 3 Ações Físicas prioritárias do Plano */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {[
+              {
+                id: 'task-parque',
+                title: 'Ir ao parque ou caminhada rápida',
+                desc: '15 min ao ar livre. Reseta a visão e gasta o impulso.',
+                icon: TreePine,
+              },
+              {
+                id: 'task-academia',
+                title: 'Academia ou exercício em casa',
+                desc: 'Dopamina saudável real no lugar da substância.',
+                icon: Dumbbell,
+              },
+              {
+                id: 'task-louca',
+                title: 'Lavar a louça ou arrumar 1 cômodo',
+                desc: 'A preguiça passa e a casa limpa alivia a mente.',
+                icon: Sparkle,
+              },
+            ].map((action) => {
+              const isDone = todayCompletedTaskIds.includes(action.id)
+              const IconComp = action.icon
+              return (
+                <div
+                  key={action.id}
+                  onClick={() => toggleTaskCompletionToday(action.id)}
+                  className={cn(
+                    'p-3 rounded-xl border flex flex-col justify-between min-h-[92px] cursor-pointer transition-all touch-target select-none',
+                    isDone
+                      ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8]'
+                      : 'bg-white dark:bg-[#242E29] border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8]',
+                  )}
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        <IconComp className="w-3.5 h-3.5 text-[#4CAF7D]" />
+                        <span className="line-clamp-1">{action.title}</span>
+                      </div>
+                      {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-[#4CAF7D] shrink-0" />}
+                    </div>
+                    <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] line-clamp-2 leading-relaxed">
+                      {action.desc}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'text-[10px] font-bold mt-2 pt-1 border-t border-[#E1E8E2]/60 dark:border-[#2D3A34]/60 block',
+                      isDone ? 'text-[#4CAF7D]' : 'text-[#6A7A72]',
+                    )}
+                  >
+                    {isDone ? '✓ Marcado no seu Plano' : 'Tocar para fazer'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </section>
 
         {/* =============================================================
             1. BANNER DE ORIENTAÇÃO GENTIL

@@ -104,8 +104,35 @@ export interface GoodActionRecord {
   id: string
   title: string
   timestamp: string // HH:MM ou ISO
-  type: 'tecnica' | 'atividade' | 'checkin' | 'honestidade' | 'meta-mantida'
+  type: 'tecnica' | 'atividade' | 'checkin' | 'honestidade' | 'meta-mantida' | 'tarefa-plano'
   message: string // ex: "Feito. Você escolheu você."
+}
+
+export type DayTaskCategory = 'casa' | 'corpo' | 'mente' | 'conexao'
+
+export interface DailyScheduleTask {
+  id: string
+  title: string
+  subtitle?: string
+  category: DayTaskCategory
+  dopamineRewardTip: string // Reforço de conexão da ação à dopamina/recompensa
+  completedTodayMessage: string // ex: "Feito. A casa mais organizada, você mais leve."
+  isPhysicalAlternativeToCravings?: boolean // parque, academia, caminhada, tarefas físicas
+  isDefault?: boolean
+}
+
+export interface DayTaskCompletionLog {
+  date: string // YYYY-MM-DD
+  taskId: string
+  taskTitle: string
+  completedAt: string // HH:MM
+}
+
+export interface RiskSituationItem {
+  id: string
+  label: string
+  description?: string
+  suggestedActionIds?: string[]
 }
 
 export interface CigaretteLogItem {
@@ -989,5 +1016,194 @@ export const CRAVING_PROTOCOLS: CravingTechniqueProtocol[] = [
     ],
     gentleReminder: 'Mudando o corpo e o lugar por 2 minutos, o cérebro recebe outra mensagem.',
     actionType: 'oposta',
+  },
+]
+
+// =============================================================
+// TAREFAS SAUDÁVEIS DO DIA (CRONOGRAMA / PLANO DO DIA)
+// Conectadas à dopamina saudável, recompensa e sensação de ordem
+// =============================================================
+export const DEFAULT_DAILY_SCHEDULE_TASKS: DailyScheduleTask[] = [
+  {
+    id: 'task-louca',
+    title: 'Lavar a louça da pia',
+    subtitle: 'Água corrente e pia livre em 10 minutos',
+    category: 'casa',
+    dopamineRewardTip:
+      'Dá preguiça no começo, mas a recompensa chega: pia limpa gera dopamina imediata e alivia a mente.',
+    completedTodayMessage: 'Feito. A pia limpa, a cabeça leve. Você cuidou do seu espaço.',
+    isPhysicalAlternativeToCravings: true,
+    isDefault: true,
+  },
+  {
+    id: 'task-piso',
+    title: 'Varrer ou passar pano no chão',
+    subtitle: 'Movimentar o corpo e deixar a casa fresca',
+    category: 'casa',
+    dopamineRewardTip:
+      'O esforço físico curto gasta a adrenalina da ansiedade e o cheiro de casa limpa acalma.',
+    completedTodayMessage: 'Feito. Chão limpo e passos firmes. Casa em ordem faz bem por dentro.',
+    isPhysicalAlternativeToCravings: true,
+    isDefault: true,
+  },
+  {
+    id: 'task-cama',
+    title: 'Arrumar a cama',
+    subtitle: 'A primeira vitória simples do seu dia',
+    category: 'casa',
+    dopamineRewardTip:
+      'Uma tarefa pequena que sinaliza para o cérebro que o dia começou com cuidado.',
+    completedTodayMessage: 'Feito. Cama arrumada, noite garantida com conforto.',
+    isPhysicalAlternativeToCravings: false,
+    isDefault: true,
+  },
+  {
+    id: 'task-roupa',
+    title: 'Lavar roupa ou estender no varal',
+    subtitle: 'Movimento prático para não deixar acumular',
+    category: 'casa',
+    dopamineRewardTip: 'Fazer o que estava pendente tira um peso invisível das suas costas.',
+    completedTodayMessage: 'Feito. Roupa cuidada, menos uma preocupação no dia.',
+    isPhysicalAlternativeToCravings: true,
+    isDefault: true,
+  },
+  {
+    id: 'task-banho',
+    title: 'Tomar banho e arrumar-se com calma',
+    subtitle: 'Trocar de roupa e sentir-se bem na própria pele',
+    category: 'corpo',
+    dopamineRewardTip:
+      'Água no corpo reseta o sistema nervoso. Vestir uma roupa limpa renova a autoestima.',
+    completedTodayMessage: 'Feito. Você cuidou do seu corpo e renovou as energias.',
+    isPhysicalAlternativeToCravings: true,
+    isDefault: true,
+  },
+  {
+    id: 'task-parque',
+    title: 'Caminhada ao ar livre ou ir ao parque',
+    subtitle: 'Ver árvores, luz do sol e respirar ar fresco',
+    category: 'corpo',
+    dopamineRewardTip:
+      'Excelente alternativa à vontade de ir ao bar: o parque oxigena, gasta a tensão e reseta a mente.',
+    completedTodayMessage: 'Feito. O ar fresco limpou a mente e você esteve com você.',
+    isPhysicalAlternativeToCravings: true,
+    isDefault: true,
+  },
+  {
+    id: 'task-academia',
+    title: 'Academia ou exercício físico em casa',
+    subtitle: '30 minutos de esforço saudável',
+    category: 'corpo',
+    dopamineRewardTip:
+      'Exercício libera dopamina e endorfina reais — o melhor substituto biológico para a fissura.',
+    completedTodayMessage: 'Feito. Corpo em movimento, dopamina saudável na veia.',
+    isPhysicalAlternativeToCravings: true,
+    isDefault: true,
+  },
+  {
+    id: 'task-comida',
+    title: 'Refeição ou lanche saudável',
+    subtitle: 'Comer com calma, sem pular horários',
+    category: 'corpo',
+    dopamineRewardTip: 'Glicose estável reduz em até 70% o impulso de beber ou usar.',
+    completedTodayMessage: 'Feito. Corpo nutrido não confunde fome com fissura.',
+    isPhysicalAlternativeToCravings: false,
+    isDefault: true,
+  },
+  {
+    id: 'task-organizacao',
+    title: '10 minutos organizando uma gaveta ou mesa',
+    subtitle: 'Foco em um único cantinho',
+    category: 'casa',
+    dopamineRewardTip:
+      'A ordem visual externa traz ordem interna. Sensação rápida de dever cumprido.',
+    completedTodayMessage: 'Feito. Um cantinho em paz faz toda a diferença.',
+    isPhysicalAlternativeToCravings: true,
+    isDefault: true,
+  },
+  {
+    id: 'task-ligar',
+    title: 'Ligar ou mandar mensagem para alguém querido',
+    subtitle: 'Trocar duas frases com quem torce por você',
+    category: 'conexao',
+    dopamineRewardTip: 'Conexão humana real quebra o isolamento que precede o bar ou a recaída.',
+    completedTodayMessage: 'Feito. Conexão aquece e fortalece o seu recomeço.',
+    isPhysicalAlternativeToCravings: false,
+    isDefault: true,
+  },
+  {
+    id: 'task-hidratacao',
+    title: 'Beber 2 litros de água ao longo do dia',
+    subtitle: 'Garrafinha sempre por perto',
+    category: 'corpo',
+    dopamineRewardTip: 'Hidratação mantém a clareza mental e ajuda o fígado a eliminar toxinas.',
+    completedTodayMessage: 'Feito. Corpo hidratado, foco renovado.',
+    isPhysicalAlternativeToCravings: false,
+    isDefault: true,
+  },
+  {
+    id: 'task-dormir',
+    title: 'Desligar telas e ir para a cama no horário',
+    subtitle: 'Dar ao cérebro o descanso que ele precisa',
+    category: 'mente',
+    dopamineRewardTip:
+      'Boa noite de sono é o maior escudo biológico contra o estresse do dia seguinte.',
+    completedTodayMessage: 'Feito. O dia terminou em paz. Amanhã é outro passo.',
+    isPhysicalAlternativeToCravings: false,
+    isDefault: true,
+  },
+]
+
+// =============================================================
+// SITUAÇÕES DE RISCO / GATILHOS FREQUENTES (ONBOARDING & TROCAR)
+// =============================================================
+export const DEFAULT_RISK_SITUATIONS: RiskSituationItem[] = [
+  {
+    id: 'risk-estresse',
+    label: 'Estresse acumulado ou cansaço mental',
+    description: 'Quando a mente está exausta e pede alívio rápido',
+    suggestedActionIds: ['task-parque', 'task-academia', 'task-banho'],
+  },
+  {
+    id: 'risk-pressao-trabalho',
+    label: 'Pressão no trabalho ou cobranças',
+    description: 'Prazos apertados, reuniões tensas ou metas difíceis',
+    suggestedActionIds: ['task-academia', 'task-louca', 'task-parque'],
+  },
+  {
+    id: 'risk-ansiedade',
+    label: 'Ansiedade ou coração acelerado',
+    description: 'Medo do futuro, sensação de sobrecarga',
+    suggestedActionIds: ['task-piso', 'task-banho', 'task-parque'],
+  },
+  {
+    id: 'risk-mudancas-novos-empregos',
+    label: 'Mudanças e novos começos (novo emprego, rotina nova)',
+    description: 'Como no exemplo do Diego: a novidade gera frio na barriga e puxa o velho hábito',
+    suggestedActionIds: ['task-parque', 'task-academia', 'task-organizacao'],
+  },
+  {
+    id: 'risk-brigas',
+    label: 'Brigas, discussões ou conflitos com alguém',
+    description: 'Raiva, mágoa ou vontade de fugir da conversa',
+    suggestedActionIds: ['task-parque', 'task-banho', 'task-ligar'],
+  },
+  {
+    id: 'risk-solidao',
+    label: 'Solidão ou sensação de vazio',
+    description: 'Casa em silêncio ou falta de companhia',
+    suggestedActionIds: ['task-ligar', 'task-louca', 'task-parque'],
+  },
+  {
+    id: 'risk-tedio',
+    label: 'Tédio ou não saber o que fazer com o tempo',
+    description: 'Horas vagas sem plano prévio',
+    suggestedActionIds: ['task-louca', 'task-piso', 'task-academia'],
+  },
+  {
+    id: 'risk-festas-happyhour',
+    label: 'Festas, happy hours ou saídas com colegas',
+    description: 'Ambiente social onde outros estão consumindo',
+    suggestedActionIds: ['task-academia', 'task-banho', 'task-ligar'],
   },
 ]

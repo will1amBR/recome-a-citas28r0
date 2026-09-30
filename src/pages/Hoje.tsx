@@ -54,6 +54,9 @@ export default function Hoje() {
     logCigaretteWithDetails,
     removeLastCigaretteLog,
     cigaretteLogs,
+    scheduleTasks,
+    todayCompletedTaskIds,
+    toggleTaskCompletionToday,
     recordCheckinDone,
     recordTechniqueCompletion,
     recordHonestEpisode,
@@ -258,7 +261,142 @@ export default function Hoje() {
         </section>
 
         {/* =============================================================
-            2. CARD "BOAS AÇÕES DE HOJE" COM CONTADOR DE DIAS SEGUIDOS
+            2. CARD "PLANO DO DIA: CRONOGRAMA DE AÇÕES SAUDÁVEIS"
+           ============================================================= */}
+        <section aria-label="Plano do dia e cronograma de tarefas">
+          <RecomecaCard
+            variant="highlight"
+            padding="lg"
+            className="space-y-3.5 border-l-4 border-l-[#7FBFA8]"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#7FBFA8]/20 dark:border-[#8FCCAE]/20 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-[#7FBFA8] text-white flex items-center justify-center shrink-0">
+                  <CalendarDays className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Plano do Dia • Ações & Dopamina Boa
+                  </h2>
+                  <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    Pequenas tarefas que aliviam a mente e geram recompensa
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30">
+                <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] tabular-nums">
+                  {todayCompletedTaskIds.length} de {scheduleTasks.length} feitas
+                </span>
+              </div>
+            </div>
+
+            {/* Barra de progresso calma */}
+            <ProgressBar
+              value={
+                scheduleTasks.length > 0
+                  ? Math.round((todayCompletedTaskIds.length / scheduleTasks.length) * 100)
+                  : 0
+              }
+              size="sm"
+              label={`${todayCompletedTaskIds.length} de ${scheduleTasks.length} feitas hoje`}
+              showPercentage
+              helperText={
+                todayCompletedTaskIds.length >= 3
+                  ? feltCraving === 'sim'
+                    ? 'A vontade veio e você respondeu com ação. Isso é força.'
+                    : 'Você usou o dia a seu favor hoje. Sensação de tudo em ordem faz bem.'
+                  : todayCompletedTaskIds.length > 0
+                    ? 'Um passo por dia já conta. A recompensa da casa em ordem acalma a mente.'
+                    : 'Um passo por dia já conta. Essas atividades dão preguiça, mas a recompensa chega.'
+              }
+            />
+
+            {/* Mini lista de 3 tarefas rápidas para marcar direto de /hoje */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                Sugestões para agora:
+              </span>
+              <div className="space-y-1.5">
+                {scheduleTasks.slice(0, 3).map((task) => {
+                  const isDone = todayCompletedTaskIds.includes(task.id)
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => toggleTaskCompletionToday(task.id)}
+                      className={cn(
+                        'p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all touch-target select-none',
+                        isDone
+                          ? 'bg-[#E8F3EC]/70 dark:bg-[#2A3831]/70 border-[#7FBFA8]'
+                          : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8]',
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={cn(
+                            'w-5 h-5 rounded-lg flex items-center justify-center shrink-0 transition-all',
+                            isDone
+                              ? 'bg-[#4CAF7D] text-white shadow-xs'
+                              : 'border-2 border-[#7FBFA8] bg-white dark:bg-[#242E29]',
+                          )}
+                        >
+                          {isDone && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </div>
+                        <span
+                          className={cn(
+                            'font-semibold truncate',
+                            isDone
+                              ? 'line-through text-[#6A7A72] dark:text-[#A0B0A7]'
+                              : 'text-[#2F4A3E] dark:text-[#E8EFE9]',
+                          )}
+                        >
+                          {task.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-[#4CAF7D] font-medium shrink-0 ml-2">
+                        {isDone ? 'Concluída' : 'Tocar'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Reforço acolhedor pós-3 tarefas */}
+            {todayCompletedTaskIds.length >= 3 && (
+              <div className="p-3 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#4CAF7D]/40 space-y-1 animate-fade-in">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#4CAF7D] dark:text-[#8FCCAE]">
+                  <Sparkles className="w-4 h-4 text-[#4CAF7D]" />
+                  <span>
+                    {feltCraving === 'sim'
+                      ? 'A vontade veio e você respondeu com ação. Isso é força.'
+                      : 'Você usou o dia a seu favor hoje.'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#2F4A3E]/90 dark:text-[#E8EFE9]/90 leading-relaxed">
+                  Hoje você cuidou da casa e de você. É assim que se constrói um recomeço.
+                </p>
+              </div>
+            )}
+
+            {/* CTA para o cronograma completo em /plano */}
+            <div className="flex items-center justify-between text-xs pt-1 border-t border-[#7FBFA8]/20">
+              <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                Sem cobrança por dia vazio
+              </span>
+              <Link
+                to="/plano"
+                className="text-[#4CAF7D] dark:text-[#8FCCAE] font-bold hover:underline inline-flex items-center gap-1"
+              >
+                <span>Ver cronograma completo ({scheduleTasks.length} tarefas)</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            3. CARD "BOAS AÇÕES DE HOJE" COM CONTADOR DE DIAS SEGUIDOS
            ============================================================= */}
         <section aria-label="Boas ações de hoje">
           <RecomecaCard variant="highlight" padding="lg" className="space-y-3.5">
