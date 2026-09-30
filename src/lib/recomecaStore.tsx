@@ -20,6 +20,7 @@ const STORAGE_KEY_TECHNIQUES = 'recomeca_technique_metrics_v1'
 const STORAGE_KEY_CONTACT = 'recomeca_contact_v1'
 const STORAGE_KEY_CIGARETTE_LOGS = 'recomeca_cigarette_logs_v1'
 const STORAGE_KEY_EPISODES = 'recomeca_episodes_v1'
+const STORAGE_KEY_ACTIVE_HABIT = 'recomeca_active_habit_v1'
 
 const INITIAL_GOOD_ACTIONS: GoodActionRecord[] = [
   {
@@ -55,6 +56,9 @@ export interface RecomecaStore {
     outcome: 'passou' | 'usou',
   ) => void
   recordActivityCompletion: (activityName: string, outcome: 'passou' | 'usou') => void
+  activeHabitId: string
+  setActiveHabitId: (id: string) => void
+  updateHabitGoal: (habitId: string, goalCustom: string, numericLimit?: number) => void
   updateCigarettes: (habitId: string, delta: number) => void
   setCigarettesDirect: (habitId: string, count: number) => void
   logCigaretteWithDetails: (params: {
@@ -63,7 +67,7 @@ export interface RecomecaStore {
     quantity?: number
     context: string
     note?: string
-  }) => void
+  }) => { count: number; limit: number; remaining: number; passed: boolean }
   removeLastCigaretteLog: (habitId?: string) => void
   recordCheckinDone: () => void
   recordHonestEpisode: (
@@ -147,6 +151,48 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
   })
 
   const [lastToastMessage, setLastToastMessage] = React.useState<string | null>(null)
+
+  // Vício / substância ativa selecionada para contexto em /trocar e /hoje
+  const [activeHabitId, setActiveHabitIdState] = React.useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_HABIT)
+      if (saved && habits.some((h) => h.id === saved)) return saved
+    } catch {
+      // fallback
+    }
+    return habits[0]?.id || 'habit-cigarro'
+  })
+
+  const setActiveHabitId = React.useCallback((id: string) => {
+    setActiveHabitIdState(id)
+    try {
+      localStorage.setItem(STORAGE_KEY_ACTIVE_HABIT, id)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Atualizar meta do dia livremente para qualquer vício
+  const updateHabitGoal = React.useCallback(
+    (habitId: string, goalCustom: string, numericLimit?: number) => {
+      setHabits((prev) =>
+        prev.map((h) => {
+          if (h.id === habitId) {
+            const updated: TrackedHabit = {
+              ...h,
+              dailyGoalCustom: goalCustom,
+            }
+            if (typeof numericLimit === 'number' && !isNaN(numericLimit) && numericLimit >= 0) {
+              updated.dailyLimit = numericLimit
+            }
+            return updated
+          }
+          return h
+        }),
+      )
+    },
+    [],
+  )
 
   // Salvar no localStorage
   React.useEffect(() => {
@@ -391,10 +437,23 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       addGoodAction({
         title: `Cigarro registrado (${timeStr} • ${newItem.context})`,
         type: 'honestidade',
-        message: 'Consciência sem culpa. Você está no controle do seu caminho.',
+        message: 'Anotado. Isso te ajuda a conhecer seus momentos.',
       })
+
+      // Calcula cigarros restantes até a meta
+      const currentHabit = habits.find((h) => h.id === targetHabitId)
+      const currentTotal = (currentHabit?.cigarettesToday ?? 0) + newItem.quantity
+      const limit = currentHabit?.dailyLimit ?? 6
+      const remaining = limit - currentTotal
+
+      return {
+        count: currentTotal,
+        limit,
+        remaining,
+        passed: remaining < 0,
+      }
     },
-    [updateCigarettes, addGoodAction],
+    [habits, updateCigarettes, addGoodAction],
   )
 
   // Remover último cigarro (se tocou em -1)
@@ -500,6 +559,9 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo<RecomecaStore>(
     () => ({
       habits,
+      activeHabitId,
+      setActiveHabitId,
+      updateHabitGoal,
       goodActions,
       goodActionsStreakDays,
       techniqueMetrics,
@@ -521,6 +583,9 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       habits,
+      activeHabitId,
+      setActiveHabitId,
+      updateHabitGoal,
       goodActions,
       goodActionsStreakDays,
       techniqueMetrics,

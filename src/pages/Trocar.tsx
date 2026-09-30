@@ -60,7 +60,14 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export default function Trocar() {
-  const { recordTechniqueCompletion, recordActivityCompletion } = useRecomecaStore()
+  const {
+    habits,
+    activeHabitId,
+    setActiveHabitId,
+    episodeLogs,
+    recordTechniqueCompletion,
+    recordActivityCompletion,
+  } = useRecomecaStore()
 
   // 15 minutes timer (900 seconds)
   const TOTAL_SECONDS = 15 * 60
@@ -195,6 +202,80 @@ export default function Trocar() {
     return CRAVING_PROTOCOLS.find((p) => p.id === selectedProtocolId) || CRAVING_PROTOCOLS[0]
   }, [selectedProtocolId])
 
+  // Vício atualmente ativo para contextualização
+  const activeHabit = React.useMemo(() => {
+    return habits.find((h) => h.id === activeHabitId) || habits[0]
+  }, [habits, activeHabitId])
+
+  // Último episódio do vício ativo específico
+  const habitLastEpisode = React.useMemo(() => {
+    if (!activeHabit) return episodeLogs[0] || MOCK_LAST_EPISODE
+
+    const found = episodeLogs.find((ep) => {
+      const epSub = ep.substanceName.toLowerCase()
+      const habName = activeHabit.name.toLowerCase()
+      const habKey = activeHabit.substanceKey?.toLowerCase() || ''
+      return (
+        epSub.includes(habName) || habName.includes(epSub) || (habKey && epSub.includes(habKey))
+      )
+    })
+
+    if (found) return found
+
+    // Se o vício ativo for cigarro/tabaco e não tiver log específico, cria um baseado em dados conhecidos
+    const isCig =
+      activeHabit.name.toLowerCase().includes('cigarro') ||
+      activeHabit.name.toLowerCase().includes('tabaco')
+    if (isCig) {
+      return {
+        id: 'ep-cig-last',
+        date: '2025-05-08',
+        time: '18:40',
+        substanceName: activeHabit.name,
+        amountDescription: '3 cigarros após dia tenso de trabalho',
+        mood: 'dificil',
+        triggers: ['estresse', 'cansaço', 'fim de expediente'],
+        freeText:
+          'Dia longo com muitas reuniões seguidas. Fumei 3 cigarros seguidos na calçada antes de ir para o ponto de ônibus.',
+        whatHappenedAfter:
+          'Tosse leve à noite, cheiro forte nas roupas e garganta seca ao acordar.',
+        receipt: {
+          spentAmount: 13.5,
+          arrivalTime: '18:30',
+          departureTime: '18:55',
+          durationMinutes: 25,
+          itemsConsumed: ['1 maço comprado na banca'],
+        },
+      }
+    }
+
+    // Se for café
+    const isCoffee = activeHabit.name.toLowerCase().includes('café')
+    if (isCoffee) {
+      return {
+        id: 'ep-cafe-last',
+        date: '2025-05-10',
+        time: '16:15',
+        substanceName: activeHabit.name,
+        amountDescription: '4 xícaras de café expresso',
+        mood: 'dificil',
+        triggers: ['prazo apertado', 'sono'],
+        freeText: 'Tomei café além da conta para tentar manter o foco numa entrega.',
+        whatHappenedAfter: 'Coração acelerado, dificuldade para pegar no sono até as 2h da manhã.',
+        receipt: {
+          spentAmount: 22.0,
+          arrivalTime: '14:00',
+          departureTime: '16:30',
+          durationMinutes: 150,
+          itemsConsumed: ['3 expressos na cafeteria'],
+        },
+      }
+    }
+
+    // Fallback: MOCK_LAST_EPISODE
+    return episodeLogs[0] || MOCK_LAST_EPISODE
+  }, [activeHabit, episodeLogs])
+
   const handleCompleteActivity = (activity: SwapActivityItem) => {
     setCompletedActivity(activity)
     setSavedOutcome(null)
@@ -239,6 +320,77 @@ export default function Trocar() {
       />
 
       <div className="px-4 py-4 space-y-6">
+        {/* =============================================================
+            SELETOR DE VÍCIO ATIVO E CONTADOR CONTEXTUALIZADO
+           ============================================================= */}
+        {habits.length > 0 && activeHabit && (
+          <section
+            aria-label="Contexto do vício atual para lidar com a vontade"
+            className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8] space-y-3"
+          >
+            {/* Seletor rápido se tiver mais de um vício */}
+            {habits.length > 1 && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                    Lidando com a vontade de qual hábito agora?
+                  </span>
+                  <span className="text-[10px] text-[#4CAF7D] font-semibold">1 toque</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {habits.map((h) => {
+                    const isSelected = h.id === activeHabit.id
+                    return (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => setActiveHabitId(h.id)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full text-xs font-bold transition-all touch-target',
+                          isSelected
+                            ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] shadow-sm'
+                            : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8]',
+                        )}
+                      >
+                        {h.name}
+                        {isSelected && ' ✓'}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Contador contextualizado do vício ativo */}
+            <div className="p-3 rounded-xl bg-white dark:bg-[#1C2420] border border-[#7FBFA8]/40 flex items-center justify-between gap-3">
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                  Seu progresso atual com {activeHabit.name}
+                </span>
+                <p className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] leading-snug">
+                  Você está há{' '}
+                  <span className="text-[#4CAF7D] dark:text-[#8FCCAE] tabular-nums">
+                    {activeHabit.currentStreakDays}{' '}
+                    {activeHabit.currentStreakDays === 1 ? 'dia' : 'dias'}
+                  </span>{' '}
+                  sem {activeHabit.name.toLowerCase()}
+                </p>
+                <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                  Melhor sequência: {activeHabit.bestStreakDays} dias •{' '}
+                  {activeHabit.cleanDaysThisMonth} dias livres no mês
+                </p>
+              </div>
+
+              <div className="text-right shrink-0">
+                <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] dark:text-[#8FCCAE] block">
+                  {activeHabit.dailyGoalCustom ||
+                    (activeHabit.goalType === 'parar' ? 'Parar de vez' : 'Reduzir')}
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* =============================================================
             1. BANNER DE ORIENTAÇÃO GENTIL
            ============================================================= */}
@@ -1004,7 +1156,7 @@ export default function Trocar() {
         </section>
 
         {/* =============================================================
-            6. CARTÃO "LEMBRA DO QUE ACONTECEU EM [DATA]?" (MOCK ÚLTIMO EPISÓDIO)
+            6. CARTÃO "LEMBRA DO QUE ACONTECEU EM [DATA]?" CONTEXTUALIZADO PELO VÍCIO ATIVO
            ============================================================= */}
         <section className="space-y-2">
           <RecomecaCard
@@ -1015,35 +1167,47 @@ export default function Trocar() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-[#2F4A3E] dark:text-[#E8EFE9] font-bold text-sm">
                 <History className="w-4 h-4 text-[#7FBFA8]" />
-                <span>Lembra do que aconteceu em {MOCK_LAST_EPISODE.date}?</span>
+                <span>
+                  Lembra do que aconteceu em {habitLastEpisode.date}? (
+                  {habitLastEpisode.substanceName})
+                </span>
               </div>
               <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
-                Seu último registro
+                Último episódio deste vício
               </span>
             </div>
+
+            {habitLastEpisode.amountDescription && (
+              <p className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                Consumo: {habitLastEpisode.amountDescription}
+              </p>
+            )}
 
             <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] italic leading-relaxed">
-              &ldquo;{MOCK_LAST_EPISODE.freeText}&rdquo;
+              &ldquo;{habitLastEpisode.freeText}&rdquo;
             </p>
 
-            <div className="p-2.5 rounded-xl bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] flex items-center justify-between text-xs">
-              <span className="text-[#6A7A72] dark:text-[#A0B0A7]">
-                Gasto registrado na ocasião:
-              </span>
-              <span className="font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
-                R$ {MOCK_LAST_EPISODE.receipt?.spentAmount.toFixed(2)}
-              </span>
-            </div>
+            {habitLastEpisode.receipt?.spentAmount !== undefined && (
+              <div className="p-2.5 rounded-xl bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] flex items-center justify-between text-xs">
+                <span className="text-[#6A7A72] dark:text-[#A0B0A7]">
+                  Gasto registrado na ocasião:
+                </span>
+                <span className="font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  R$ {habitLastEpisode.receipt.spentAmount.toFixed(2)}
+                </span>
+              </div>
+            )}
 
             <p className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] font-medium leading-relaxed">
               Consequência anotada:{' '}
               <span className="text-[#6A7A72] dark:text-[#A0B0A7]">
-                {MOCK_LAST_EPISODE.whatHappenedAfter}
+                {habitLastEpisode.whatHappenedAfter}
               </span>
             </p>
 
             <p className="text-[11px] text-[#7FBFA8] dark:text-[#8FCCAE] font-semibold pt-1">
-              Você já passou por isso e sabe que a paz do dia seguinte vale muito mais.
+              Você já passou por isso e sabe que a paz do dia seguinte com{' '}
+              {activeHabit.name.toLowerCase()} vale muito mais.
             </p>
           </RecomecaCard>
         </section>

@@ -17,6 +17,7 @@ export interface TrackedHabit {
   dailyLimit?: number // ex: limite diário (cigarros, xícaras)
   dailyCurrent?: number
   unit?: string
+  dailyGoalCustom?: string // Meta do dia livre editável pelo usuário (ex: "até 6 cigarros", "até 2 xícaras", "0 doses")
   startDate: string
   highRiskAbstinence?: boolean
   // Marcador diário específico para tabaco/cigarro
@@ -213,6 +214,7 @@ export const MOCK_TRACKED_HABITS: TrackedHabit[] = [
     bestStreakDays: 34,
     cleanDaysThisMonth: 23,
     milestoneGoalDays: 21,
+    dailyGoalCustom: '0 doses (dia livre)',
     startDate: '2025-04-10',
     highRiskAbstinence: true,
   },
@@ -228,6 +230,7 @@ export const MOCK_TRACKED_HABITS: TrackedHabit[] = [
     milestoneGoalDays: 15,
     dailyLimit: 6, // Meta diária de até 6 cigarros
     dailyCurrent: 4, // Hoje fumou 4 cigarros
+    dailyGoalCustom: 'até 6 cigarros',
     unit: 'cigarros',
     cigarettesToday: 4,
     cigarettesWeek: 26,
@@ -248,6 +251,7 @@ export const MOCK_TRACKED_HABITS: TrackedHabit[] = [
     milestoneGoalDays: 30,
     dailyLimit: 2,
     dailyCurrent: 1,
+    dailyGoalCustom: 'até 2 xícaras',
     unit: 'xícaras',
     startDate: '2025-04-20',
     highRiskAbstinence: false,

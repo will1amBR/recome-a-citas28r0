@@ -46,6 +46,8 @@ export default function Hoje() {
   const navigate = useNavigate()
   const {
     habits,
+    activeHabitId,
+    setActiveHabitId,
     goodActions,
     goodActionsStreakDays,
     updateCigarettes,
@@ -54,9 +56,15 @@ export default function Hoje() {
     cigaretteLogs,
     recordCheckinDone,
     recordTechniqueCompletion,
+    recordHonestEpisode,
     lastToastMessage,
     clearToast,
   } = useRecomecaStore()
+
+  // Vício atualmente ativo para check-in e registros em /hoje
+  const activeHabit = React.useMemo(() => {
+    return habits.find((h) => h.id === activeHabitId) || habits[0]
+  }, [habits, activeHabitId])
 
   // Estado do Modal Rápido de Cigarro
   const [isCigaretteModalOpen, setIsCigaretteModalOpen] = React.useState<boolean>(false)
@@ -122,6 +130,13 @@ export default function Hoje() {
   const handleSaveCheckin = (e: React.FormEvent) => {
     e.preventDefault()
     setCheckinSaved(true)
+    if (usedToday === 'sim' && activeHabit) {
+      recordHonestEpisode(activeHabit.name, undefined, {
+        amountDescription: usedAmountInput || 'Episódio anotado no check-in',
+        mood: checkinMood,
+        freeText: generalNotes,
+      })
+    }
     recordCheckinDone()
   }
 
@@ -181,6 +196,49 @@ export default function Hoje() {
       />
 
       <div className="px-4 py-4 space-y-6">
+        {/* =============================================================
+            SELETOR RÁPIDO DE VÍCIO EM /hoje QUANDO HOUVER MAIS DE UM
+           ============================================================= */}
+        {habits.length > 1 && activeHabit && (
+          <section
+            aria-label="Seleção rápida do vício para o registro de hoje"
+            className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8] space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                Registrando agora para qual vício?
+              </span>
+              <span className="text-[11px] font-bold text-[#4CAF7D] dark:text-[#8FCCAE]">
+                Ativo: {activeHabit.name}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {habits.map((h) => {
+                const isSelected = h.id === activeHabit.id
+                return (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => setActiveHabitId(h.id)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-xs font-bold transition-all touch-target',
+                      isSelected
+                        ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] shadow-sm'
+                        : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8]',
+                    )}
+                  >
+                    {h.name}
+                    {isSelected && ' ✓'}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+              Selecione para direcionar seu check-in, contadores e atalhos de troca.
+            </p>
+          </section>
+        )}
+
         {/* =============================================================
             1. MENSAGEM DO DIA (Gentil e acolhedora)
            ============================================================= */}
@@ -624,9 +682,17 @@ export default function Hoje() {
            ============================================================= */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-              Check-in de Hoje
-            </h2>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                Check-in de Hoje
+              </h2>
+              {activeHabit && (
+                <p className="text-xs text-[#4CAF7D] dark:text-[#8FCCAE] font-semibold">
+                  Registro focado em: <strong>{activeHabit.name}</strong>
+                  {activeHabit.dailyGoalCustom ? ` (meta: ${activeHabit.dailyGoalCustom})` : ''}
+                </p>
+              )}
+            </div>
             <span className="text-xs text-[#4CAF7D] dark:text-[#5DBF8C] font-semibold flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5" />
               Tudo opcional • Sem cobrança
@@ -688,12 +754,22 @@ export default function Hoje() {
                 <div className="space-y-2 text-left pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                      2. Como foi o consumo hoje? (opcional)
+                      2. Como foi o consumo de {activeHabit ? activeHabit.name : 'substância'} hoje?
+                      (opcional)
                     </label>
                     <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
                       Sem julgamento
                     </span>
                   </div>
+                  {activeHabit && (
+                    <span className="text-[11px] text-[#4CAF7D] dark:text-[#8FCCAE] font-medium block">
+                      Meta do dia cadastrada:{' '}
+                      {activeHabit.dailyGoalCustom ||
+                        (activeHabit.dailyLimit
+                          ? `até ${activeHabit.dailyLimit} ${activeHabit.unit || ''}`
+                          : 'não definida')}
+                    </span>
+                  )}
                   <div className="grid grid-cols-3 gap-1.5 min-[380px]:gap-2">
                     <button
                       type="button"

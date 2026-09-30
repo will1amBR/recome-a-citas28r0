@@ -17,6 +17,7 @@ import {
   Calendar as CalendarIcon,
   Sparkles,
   TrendingUp,
+  TrendingDown,
   DollarSign,
   Clock,
   Heart,
@@ -31,6 +32,12 @@ import {
   Cigarette,
   Users,
   Package,
+  Copy,
+  Check,
+  BarChart3,
+  CalendarRange,
+  Activity,
+  Share2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -94,6 +101,186 @@ export default function Diario() {
   // Último episódio (ou o salvo na store)
   const latestEpisode = episodeLogs[0] || MOCK_LAST_EPISODE
 
+  // Alternância entre visão Mensal e Semanal
+  const [reportView, setReportView] = React.useState<'mensal' | 'semanal'>('mensal')
+
+  // Estado de cópia do resumo para médico/terapeuta
+  const [copiedSummary, setCopiedSummary] = React.useState<boolean>(false)
+
+  // 1. Dados das últimas 4 semanas (comparação semana a semana)
+  const weeklyData = React.useMemo(() => {
+    return [
+      {
+        weekLabel: 'Semana 4 (Esta semana)',
+        dates: '08/05 a 15/05',
+        cleanDays: 6,
+        totalDays: 7,
+        consumptionSummary: '4 cigarros, 1 café/dia',
+        spent: 0.0,
+        trend: 'positivo',
+        comparisonText: 'Mais dias livres que a semana anterior. Ritmo consistente.',
+      },
+      {
+        weekLabel: 'Semana 3',
+        dates: '01/05 a 07/05',
+        cleanDays: 6,
+        totalDays: 7,
+        consumptionSummary: '19 cigarros na semana, 2 cafés/dia',
+        spent: 0.0,
+        trend: 'positivo',
+        comparisonText: '1 dia com episódio anotado sem culpa, retomada no dia seguinte.',
+      },
+      {
+        weekLabel: 'Semana 2',
+        dates: '24/04 a 30/04',
+        cleanDays: 7,
+        totalDays: 7,
+        consumptionSummary: '24 cigarros na semana',
+        spent: 0.0,
+        trend: 'positivo',
+        comparisonText: 'Semana 100% de dias limpos em álcool.',
+      },
+      {
+        weekLabel: 'Semana 1',
+        dates: '17/04 a 23/04',
+        cleanDays: 5,
+        totalDays: 7,
+        consumptionSummary: '3 chopes em saída, 32 cigarros',
+        spent: 114.5,
+        trend: 'neutro',
+        comparisonText: 'Semana de início do acompanhamento consciente.',
+      },
+    ]
+  }, [])
+
+  // 2. Relatório de fissuras mais rico: períodos do dia (manhã, tarde, noite, madrugada)
+  const cravingDayPeriods = React.useMemo(() => {
+    return [
+      {
+        period: 'Manhã',
+        range: '06h - 12h',
+        count: 4,
+        percentage: 14,
+        peakReason: 'Com o primeiro café',
+      },
+      {
+        period: 'Tarde',
+        range: '12h - 18h',
+        count: 12,
+        percentage: 43,
+        peakReason: 'Depois do almoço e pausas',
+      },
+      {
+        period: 'Noite',
+        range: '18h - 00h',
+        count: 10,
+        percentage: 36,
+        peakReason: 'Transição trabalho / casa',
+      },
+      {
+        period: 'Madrugada',
+        range: '00h - 06h',
+        count: 2,
+        percentage: 7,
+        peakReason: 'Insônia ocasional',
+      },
+    ]
+  }, [])
+
+  const totalCravingsMonth = cravingDayPeriods.reduce((acc, p) => acc + p.count, 0)
+
+  // 3. Tendência gentil do mês baseada nos dados
+  const monthlyTrend = React.useMemo(() => {
+    const isCleanHigh = MOCK_MONTHLY_MIRROR.cleanDaysCount >= 20
+    const spentReduced = MOCK_MONTHLY_MIRROR.totalSpent < MOCK_MONTHLY_MIRROR.previousMonthSpent
+
+    if (isCleanHigh && spentReduced) {
+      return {
+        type: 'progresso',
+        phrase:
+          'Este mês você registrou menos episódios que o passado. Cada registro é um passo de autoconhecimento.',
+        subtext: 'Seus dias livres aumentaram e seu gasto diminuiu R$ 45,50 com tranquilidade.',
+      }
+    } else if (isCleanHigh) {
+      return {
+        type: 'estavel',
+        phrase:
+          'Um mês de ritmo seguro. Você manteve a maior parte dos seus dias livres e seguiu cuidando de você.',
+        subtext: 'A constância é mais importante que a velocidade.',
+      }
+    } else {
+      return {
+        type: 'acolhimento',
+        phrase: 'Foi um mês mais difícil. Registrar já é cuidar de você.',
+        subtext: 'Recomeçar faz parte do caminho. Seus passos anteriores continuam com você.',
+      }
+    }
+  }, [])
+
+  // 4. Gerar resumo copiável para levar ao médico ou terapeuta
+  const generateDoctorSummary = () => {
+    const lines = [
+      `--- RECOMEÇA • RESUMO DE ACOMPANHAMENTO ---`,
+      `Período: ${MOCK_MONTHLY_MIRROR.monthName} de ${MOCK_MONTHLY_MIRROR.year}`,
+      `Aviso: Registro pessoal de autocuidado. Não substitui consulta médica.`,
+      ``,
+      `SÍNTESE DO MÊS:`,
+      `• Dias livres no mês: ${MOCK_MONTHLY_MIRROR.cleanDaysCount} dias`,
+      `• Dias com episódios registrados: ${MOCK_MONTHLY_MIRROR.relapseDaysCount} dia(s)`,
+      `• Gasto total com substâncias no mês: R$ ${MOCK_MONTHLY_MIRROR.totalSpent.toFixed(2)} (mês anterior: R$ ${MOCK_MONTHLY_MIRROR.previousMonthSpent.toFixed(2)})`,
+      ``,
+      `HÁBITOS EM ACOMPANHAMENTO:`,
+      ...habits.map((h) => {
+        const metaStr = h.dailyGoalCustom ? ` | Meta: ${h.dailyGoalCustom}` : ''
+        return `• ${h.name} (${h.goalType === 'parar' ? 'Parar' : 'Reduzir'}): ${h.currentStreakDays} dias limpos atuais, melhor sequência ${h.bestStreakDays} dias${metaStr}`
+      }),
+      ``,
+      `PADRÃO DE FISSURAS (TOTAL: ${totalCravingsMonth}):`,
+      ...cravingDayPeriods.map(
+        (p) =>
+          `• ${p.period} (${p.range}): ${p.count} fissuras (${p.percentage}%) - Gatilho: ${p.peakReason}`,
+      ),
+      ``,
+      `EFICÁCIA DAS TÉCNICAS PRATICADAS:`,
+      ...techniqueMetrics
+        .slice(0, 4)
+        .map(
+          (t) =>
+            `• ${t.name}: ${t.percentagePassed}% de alívio sem uso (${t.passedWithoutUsingCount} de ${t.count})`,
+        ),
+      ``,
+      `ÚLTIMO EPISÓDIO REGISTRADO:`,
+      `• Data: ${latestEpisode.date} às ${latestEpisode.time} (${latestEpisode.substanceName})`,
+      `• Quantidade: ${latestEpisode.amountDescription || 'Não detalhada'}`,
+      `• Gatilhos anotados: ${latestEpisode.triggers.join(', ') || 'Nenhum'}`,
+      `• Consequência: ${latestEpisode.whatHappenedAfter}`,
+      `-----------------------------------------`,
+    ]
+    return lines.join('\n')
+  }
+
+  const handleCopyDoctorSummary = async () => {
+    const text = generateDoctorSummary()
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // fallback
+        const ta = document.createElement('textarea')
+        ta.value = text
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      setCopiedSummary(true)
+      setTimeout(() => setCopiedSummary(false), 3000)
+    } catch {
+      setCopiedSummary(true)
+      setTimeout(() => setCopiedSummary(false), 3000)
+    }
+  }
+
   const getDayStatusColor = (status: DayCalendarStatus['status']) => {
     switch (status) {
       case 'limpo':
@@ -117,6 +304,477 @@ export default function Diario() {
       />
 
       <div className="px-4 py-4 space-y-6">
+        {/* =============================================================
+            SELETOR DE VISÃO: MENSAL vs SEMANAL
+           ============================================================= */}
+        <section aria-label="Seletor de visão de período" className="space-y-2">
+          <div className="grid grid-cols-2 p-1 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/30">
+            <button
+              type="button"
+              onClick={() => setReportView('mensal')}
+              className={cn(
+                'py-2 px-3 rounded-xl text-xs font-bold transition-all touch-target flex items-center justify-center gap-1.5',
+                reportView === 'mensal'
+                  ? 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] shadow-sm'
+                  : 'text-[#6A7A72] dark:text-[#A0B0A7] hover:text-[#2F4A3E]',
+              )}
+            >
+              <CalendarIcon className="w-3.5 h-3.5 text-[#7FBFA8]" />
+              <span>Espelho Mensal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportView('semanal')}
+              className={cn(
+                'py-2 px-3 rounded-xl text-xs font-bold transition-all touch-target flex items-center justify-center gap-1.5',
+                reportView === 'semanal'
+                  ? 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] shadow-sm'
+                  : 'text-[#6A7A72] dark:text-[#A0B0A7] hover:text-[#2F4A3E]',
+              )}
+            >
+              <CalendarRange className="w-3.5 h-3.5 text-[#7FBFA8]" />
+              <span>Visão Semanal (4 sem.)</span>
+            </button>
+          </div>
+        </section>
+
+        {/* =============================================================
+            TENDÊNCIA GENTIL DO PERÍODO
+           ============================================================= */}
+        <section aria-label="Tendência gentil">
+          <div className="p-4 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8] flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#4CAF7D] text-white flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                Tendência do Período
+              </span>
+              <p className="text-xs sm:text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] leading-snug">
+                {monthlyTrend.phrase}
+              </p>
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                {monthlyTrend.subtext}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* =============================================================
+            VISÃO SEMANAL (ÚLTIMAS 4 SEMANAS COM COMPARAÇÃO SEMANA A SEMANA)
+           ============================================================= */}
+        {reportView === 'semanal' && (
+          <section
+            aria-label="Visão semanal das últimas 4 semanas"
+            className="space-y-3 animate-fade-in"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+                  <CalendarRange className="w-4 h-4 text-[#7FBFA8]" />
+                  Comparação Semana a Semana
+                </h2>
+                <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                  Últimas 4 semanas com consumo, dias limpos e gastos
+                </p>
+              </div>
+              <span className="text-xs font-semibold text-[#4CAF7D]">4 semanas</span>
+            </div>
+
+            <div className="space-y-3">
+              {weeklyData.map((week, idx) => (
+                <RecomecaCard
+                  key={week.weekLabel}
+                  variant="default"
+                  padding="md"
+                  className={cn(
+                    'space-y-2.5 border-l-4',
+                    idx === 0 ? 'border-l-[#4CAF7D]' : 'border-l-[#7FBFA8]',
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        {week.weekLabel}
+                      </h3>
+                      <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                        {week.dates}
+                      </span>
+                    </div>
+
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] dark:text-[#8FCCAE]">
+                      {week.cleanDays} de {week.totalDays} dias limpos
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block uppercase font-bold">
+                        Consumo registrado
+                      </span>
+                      <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] block truncate">
+                        {week.consumptionSummary}
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block uppercase font-bold">
+                        Gasto na semana
+                      </span>
+                      <span className="font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                        R$ {week.spent.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#2F4A3E] dark:text-[#8FCCAE] font-medium leading-relaxed pt-0.5">
+                    💡 {week.comparisonText}
+                  </p>
+                </RecomecaCard>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* =============================================================
+            MÉTRICAS POR VÍCIO (PARA CADA SUBSTÂNCIA ATIVA)
+           ============================================================= */}
+        <section aria-label="Métricas detalhadas por vício ativo" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+              <Activity className="w-4 h-4 text-[#7FBFA8]" />
+              Métricas por Vício Ativo
+            </h2>
+            <span className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+              {habits.length} substâncias
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {habits.map((habit) => {
+              const isTobacco =
+                habit.name.toLowerCase().includes('cigarro') ||
+                habit.name.toLowerCase().includes('tabaco')
+              const isAlcohol = habit.name.toLowerCase().includes('álcool')
+              const isCoffee = habit.name.toLowerCase().includes('café')
+
+              const monthlyConsumption = isTobacco
+                ? `${monthlyPacks} maços (~${monthlyCigarettes} cigarros)`
+                : isAlcohol
+                  ? '1 episódio registrado no mês'
+                  : isCoffee
+                    ? '1 a 2 xícaras/dia (na meta)'
+                    : 'Acompanhamento sob controle'
+
+              const habitSpent = isAlcohol ? 114.5 : isTobacco ? monthlyPacks * 13.0 : 0.0
+
+              const comparisonText = isTobacco
+                ? '3 maços a menos que o mês passado. Ritmo consistente.'
+                : isAlcohol
+                  ? 'R$ 45,50 a menos gastos que no mês anterior.'
+                  : 'Consumo dentro do limite planejado com calma.'
+
+              return (
+                <RecomecaCard
+                  key={habit.id}
+                  variant="default"
+                  padding="md"
+                  className="space-y-3 border-l-4 border-l-[#7FBFA8]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                        {habit.category} • {habit.goalType === 'parar' ? 'Parar' : 'Reduzir'}
+                      </span>
+                      <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        {habit.name}
+                      </h3>
+                    </div>
+
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] dark:text-[#8FCCAE]">
+                      {habit.dailyGoalCustom || 'Meta livre'}
+                    </span>
+                  </div>
+
+                  {/* 4 indicadores do vício */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                    <div className="p-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block uppercase font-bold">
+                        Dias limpos agora
+                      </span>
+                      <span className="text-base font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        {habit.currentStreakDays}d
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block uppercase font-bold">
+                        Melhor sequência
+                      </span>
+                      <span className="text-base font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        {habit.bestStreakDays}d
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block uppercase font-bold">
+                        Dias livres no mês
+                      </span>
+                      <span className="text-base font-bold tabular-nums text-[#4CAF7D]">
+                        {habit.cleanDaysThisMonth}d
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block uppercase font-bold">
+                        Gasto estimado
+                      </span>
+                      <span className="text-base font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        R$ {habitSpent.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Consumo do mês e comparação */}
+                  <div className="p-2.5 rounded-xl bg-[#E8F3EC]/70 dark:bg-[#2A3831]/70 border border-[#7FBFA8]/30 space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#6A7A72] dark:text-[#A0B0A7]">Consumo no mês:</span>
+                      <strong className="text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        {monthlyConsumption}
+                      </strong>
+                    </div>
+                    <p className="text-[11px] text-[#4CAF7D] dark:text-[#8FCCAE] font-semibold pt-0.5">
+                      ✓ {comparisonText}
+                    </p>
+                  </div>
+                </RecomecaCard>
+              )
+            })}
+          </div>
+        </section>
+
+        {/* =============================================================
+            RELATÓRIO DE FISSURAS MAIS RICO (HORÁRIOS, GRÁFICO CSS, TÉCNICAS E TAXA)
+           ============================================================= */}
+        <section aria-label="Relatório rico de fissuras" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4 text-[#7FBFA8]" />
+                Relatório de Fissuras & Técnicas
+              </h2>
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                {totalCravingsMonth} fissuras mapeadas este mês
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-[#4CAF7D]">Horários & Alívio</span>
+          </div>
+
+          <RecomecaCard variant="default" padding="lg" className="space-y-4">
+            {/* Gráfico de barras simples em CSS puro para períodos do dia */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                Em quais períodos do dia as fissuras acontecem:
+              </span>
+
+              <div className="space-y-2.5 pt-1">
+                {cravingDayPeriods.map((period) => (
+                  <div key={period.period} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        {period.period}{' '}
+                        <span className="text-[11px] font-normal text-[#6A7A72] dark:text-[#A0B0A7]">
+                          ({period.range})
+                        </span>
+                      </span>
+                      <span className="tabular-nums font-bold text-[#4CAF7D] dark:text-[#8FCCAE]">
+                        {period.count} fissuras ({period.percentage}%)
+                      </span>
+                    </div>
+
+                    <div className="w-full h-3 rounded-full bg-[#E1E8E2] dark:bg-[#2D3A34] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#7FBFA8] transition-all"
+                        style={{ width: `${Math.min(100, period.percentage * 2)}%` }}
+                      />
+                    </div>
+
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block">
+                      Gatilho comum: {period.peakReason}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Técnicas usadas e taxa de "onda passou sem usar" */}
+            <div className="space-y-2.5 pt-3 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Técnicas usadas e taxa &ldquo;onda passou sem usar&rdquo;:
+                </span>
+                <span className="text-[10px] text-[#4CAF7D] font-bold">Eficácia real</span>
+              </div>
+
+              <div className="space-y-2">
+                {techniqueMetrics.map((tech) => (
+                  <div
+                    key={tech.id}
+                    className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] truncate max-w-[200px]">
+                        {tech.name}
+                      </span>
+                      <span className="font-bold tabular-nums text-[#4CAF7D] dark:text-[#8FCCAE]">
+                        {tech.percentagePassed}% alívio
+                      </span>
+                    </div>
+
+                    <div className="w-full h-1.5 rounded-full bg-[#E1E8E2] dark:bg-[#2D3A34] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#4CAF7D] transition-all"
+                        style={{ width: `${tech.percentagePassed}%` }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                      <span>{tech.passedWithoutUsingCount} passaram sem usar</span>
+                      <span>
+                        {tech.usedAfterCount} uso após • Total: {tech.count}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            RELATÓRIO DE GASTOS (TOTAL POR VÍCIO, COMPARAÇÃO, NEUTRO SEM MORALIZAR)
+           ============================================================= */}
+        <section aria-label="Relatório neutro de gastos" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4 text-[#7FBFA8]" />
+              Relatório Financeiro do Mês
+            </h2>
+            <span className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">Número neutro</span>
+          </div>
+
+          <RecomecaCard variant="default" padding="lg" className="space-y-3">
+            <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#6A7A72] dark:text-[#A0B0A7] block">
+                  Total gasto no mês
+                </span>
+                <span className="text-xl font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  R$ {MOCK_MONTHLY_MIRROR.totalSpent.toFixed(2)}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-bold text-[#6A7A72] dark:text-[#A0B0A7] block">
+                  Mês anterior
+                </span>
+                <span className="text-sm font-bold tabular-nums text-[#6A7A72] dark:text-[#A0B0A7]">
+                  R$ {MOCK_MONTHLY_MIRROR.previousMonthSpent.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Total do mês por vício */}
+            <div className="space-y-2 pt-1">
+              <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                Detalhamento por substância no mês:
+              </span>
+
+              <div className="space-y-1.5 text-xs">
+                <div className="p-2 rounded-xl bg-[#F4F7F2] dark:bg-[#242E29] flex items-center justify-between">
+                  <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">Álcool</span>
+                  <span className="tabular-nums font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    R$ 114,50 (1 episódio anotado)
+                  </span>
+                </div>
+                <div className="p-2 rounded-xl bg-[#F4F7F2] dark:bg-[#242E29] flex items-center justify-between">
+                  <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">Cigarro</span>
+                  <span className="tabular-nums font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    R$ 117,00 (9 maços no mês)
+                  </span>
+                </div>
+                <div className="p-2 rounded-xl bg-[#F4F7F2] dark:bg-[#242E29] flex items-center justify-between">
+                  <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">Café</span>
+                  <span className="tabular-nums font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    R$ 0,00 (consumo doméstico)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Comparação neutra sem moralizar nem dizer o que faria com o dinheiro */}
+            <div className="p-3 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/30 text-xs text-[#2F4A3E] dark:text-[#8FCCAE]">
+              <span>
+                Comparação: <strong>R$ 45,50 a menos</strong> em relação ao mês anterior. Os dados
+                ficam guardados exclusivamente no seu dispositivo para você acompanhar sua evolução.
+              </span>
+            </div>
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            EXPORTAR / COMPARTILHAR RESUMO DO MÊS (TEXTO COPIÁVEL PARA MÉDICO/TERAPEUTA)
+           ============================================================= */}
+        <section aria-label="Exportar resumo para médico ou terapeuta" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+                <Share2 className="w-4 h-4 text-[#7FBFA8]" />
+                Relatório para o Médico / Terapeuta
+              </h2>
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                Gera um texto resumo completo para você copiar e levar para sua consulta
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-[#4CAF7D]">Texto copiável</span>
+          </div>
+
+          <RecomecaCard variant="default" padding="lg" className="space-y-3">
+            <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Resumo do Mês ({MOCK_MONTHLY_MIRROR.monthName})
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyDoctorSummary}
+                  className="px-3 py-1.5 rounded-xl bg-[#7FBFA8] hover:bg-[#6DA98F] text-white font-bold text-xs flex items-center gap-1.5 transition-all touch-target"
+                >
+                  {copiedSummary ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiar texto</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <pre className="p-2.5 rounded-lg bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[11px] text-[#2F4A3E] dark:text-[#E8EFE9] font-mono whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed">
+                {generateDoctorSummary()}
+              </pre>
+
+              <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] pt-1">
+                Cole no WhatsApp do seu profissional de confiança ou leve impresso/anotado. Sem
+                julgamentos e sem expor dados desnecessários.
+              </p>
+            </div>
+          </RecomecaCard>
+        </section>
+
         {/* =============================================================
             1. ESPELHO DO MÊS (CONSCIÊNCIA FINANCEIRA, HORAS E CIGARROS)
            ============================================================= */}

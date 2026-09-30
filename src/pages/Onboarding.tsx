@@ -20,6 +20,7 @@ interface HabitDetailConfig {
   goal: 'parar' | 'reduzir'
   frequency: string
   sinceWhen: string
+  dailyGoalCustom: string // Meta do dia editável (campo livre, nunca sugerido)
 }
 
 export default function Onboarding() {
@@ -32,10 +33,20 @@ export default function Onboarding() {
   // 1) Escolhas de substâncias/hábitos
   const [selectedSubstances, setSelectedSubstances] = React.useState<string[]>(['alcool', 'cafe'])
 
-  // 2) Detalhes para cada item escolhido (parar ou reduzir, uso atual, desde quando)
+  // 2) Detalhes para cada item escolhido (parar ou reduzir, uso atual, desde quando, meta do dia livre)
   const [details, setDetails] = React.useState<Record<string, HabitDetailConfig>>({
-    alcool: { goal: 'parar', frequency: '3 a 4 vezes por semana', sinceWhen: 'Há 5 anos' },
-    cafe: { goal: 'reduzir', frequency: '4 a 5 xícaras por dia', sinceWhen: 'Há cerca de 3 anos' },
+    alcool: {
+      goal: 'parar',
+      frequency: '3 a 4 vezes por semana',
+      sinceWhen: 'Há 5 anos',
+      dailyGoalCustom: '0 doses (dia livre)',
+    },
+    cafe: {
+      goal: 'reduzir',
+      frequency: '4 a 5 xícaras por dia',
+      sinceWhen: 'Há cerca de 3 anos',
+      dailyGoalCustom: 'até 2 xícaras',
+    },
   })
 
   // 3) Contato de emergência
@@ -67,7 +78,12 @@ export default function Onboarding() {
         if (!details[id]) {
           setDetails((d) => ({
             ...d,
-            [id]: { goal: 'parar', frequency: 'Diariamente', sinceWhen: 'Há cerca de 1 ano' },
+            [id]: {
+              goal: 'parar',
+              frequency: 'Diariamente',
+              sinceWhen: 'Há cerca de 1 ano',
+              dailyGoalCustom: '',
+            },
           }))
         }
         return next
@@ -300,10 +316,11 @@ export default function Onboarding() {
             <div className="space-y-4">
               {selectedSubstances.map((id) => {
                 const substanceInfo = ONBOARDING_SUBSTANCES.find((s) => s.id === id)
-                const currentDetail = details[id] || {
+                const currentDetail: HabitDetailConfig = details[id] || {
                   goal: 'parar',
                   frequency: 'Diariamente',
                   sinceWhen: 'Cerca de 1 ano',
+                  dailyGoalCustom: '',
                 }
 
                 return (
@@ -365,6 +382,17 @@ export default function Onboarding() {
                       value={currentDetail.sinceWhen}
                       onChange={(e) => updateDetail(id, 'sinceWhen', e.target.value)}
                     />
+
+                    {/* Meta do dia editável (campo livre, nunca sugerida pelo app) */}
+                    <div className="space-y-1">
+                      <RecomecaInput
+                        label="Sua meta para o dia (campo livre)"
+                        placeholder="Ex.: até 6 cigarros, 2 xícaras, 0 doses, 1g..."
+                        value={currentDetail.dailyGoalCustom || ''}
+                        onChange={(e) => updateDetail(id, 'dailyGoalCustom', e.target.value)}
+                        helperText="Você decide a sua meta em suas próprias palavras. O app nunca impõe nem sugere quantidade."
+                      />
+                    </div>
                   </RecomecaCard>
                 )
               })}

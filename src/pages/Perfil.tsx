@@ -23,7 +23,11 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function Perfil() {
-  const { contact } = useRecomecaStore()
+  const { contact, habits, updateHabitGoal } = useRecomecaStore()
+
+  // Estado para edição inline da meta do dia de cada vício
+  const [editingHabitId, setEditingHabitId] = React.useState<string | null>(null)
+  const [goalInputValue, setGoalInputValue] = React.useState<string>('')
 
   // Controle de tema claro/escuro
   const [isDarkMode, setIsDarkMode] = React.useState<boolean>(() => {
@@ -86,39 +90,113 @@ export default function Perfil() {
           </div>
 
           <div className="space-y-2">
-            {MOCK_TRACKED_HABITS.map((habit) => (
-              <RecomecaCard
-                key={habit.id}
-                variant="default"
-                padding="md"
-                className="flex items-center justify-between gap-2"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center shrink-0">
-                    <Activity className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
-                      {habit.name}
-                    </h4>
-                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
-                      {habit.goalType === 'parar'
-                        ? 'Objetivo: Parar de vez'
-                        : 'Objetivo: Reduzir aos poucos'}
-                    </span>
-                  </div>
-                </div>
+            {habits.map((habit) => {
+              const isEditing = editingHabitId === habit.id
 
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9] block">
-                    {habit.currentStreakDays} dias
-                  </span>
-                  <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block">
-                    Melhor: {habit.bestStreakDays}d
-                  </span>
-                </div>
-              </RecomecaCard>
-            ))}
+              const handleStartEdit = () => {
+                setEditingHabitId(habit.id)
+                setGoalInputValue(
+                  habit.dailyGoalCustom ||
+                    (habit.dailyLimit ? `até ${habit.dailyLimit} ${habit.unit || 'unidades'}` : ''),
+                )
+              }
+
+              const handleSaveGoal = () => {
+                // Tenta extrair número caso haja para atualizar numericLimit se aplicável
+                const numMatch = goalInputValue.match(/\d+/)
+                const parsedNum = numMatch ? parseInt(numMatch[0], 10) : undefined
+                updateHabitGoal(habit.id, goalInputValue.trim(), parsedNum)
+                setEditingHabitId(null)
+              }
+
+              return (
+                <RecomecaCard key={habit.id} variant="default" padding="md" className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center shrink-0">
+                        <Activity className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
+                          {habit.name}
+                        </h4>
+                        <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
+                          {habit.goalType === 'parar'
+                            ? 'Objetivo: Parar de vez'
+                            : 'Objetivo: Reduzir aos poucos'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                        {habit.currentStreakDays} dias
+                      </span>
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block">
+                        Melhor: {habit.bestStreakDays}d
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Meta do dia editável para este vício */}
+                  <div className="pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34] space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#6A7A72] dark:text-[#A0B0A7] font-semibold">
+                        Meta do dia:
+                      </span>
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          onClick={handleStartEdit}
+                          className="text-[#4CAF7D] dark:text-[#8FCCAE] font-bold hover:underline"
+                        >
+                          {habit.dailyGoalCustom ? 'Editar meta' : 'Definir meta'}
+                        </button>
+                      )}
+                    </div>
+
+                    {isEditing ? (
+                      <div className="space-y-2 animate-fade-in pt-1">
+                        <input
+                          type="text"
+                          value={goalInputValue}
+                          onChange={(e) => setGoalInputValue(e.target.value)}
+                          placeholder="Ex.: até 5 cigarros, 2 xícaras, 0 doses..."
+                          className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#7FBFA8] text-[#2F4A3E] dark:text-[#E8EFE9] focus-visible:outline-2 focus-visible:outline-[#7FBFA8]"
+                        />
+                        <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                          Campo livre: você decide a sua meta em suas palavras. O app nunca sugere
+                          doses.
+                        </p>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingHabitId(null)}
+                            className="px-2.5 py-1 text-xs text-[#6A7A72] hover:text-[#2F4A3E]"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveGoal}
+                            className="px-3 py-1 rounded-lg bg-[#7FBFA8] text-white text-xs font-bold"
+                          >
+                            Salvar meta
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE]">
+                        {habit.dailyGoalCustom ||
+                          (habit.dailyLimit
+                            ? `Até ${habit.dailyLimit} ${habit.unit || 'unidades'}`
+                            : 'Nenhuma meta definida')}
+                      </p>
+                    )}
+                  </div>
+                </RecomecaCard>
+              )
+            })}
           </div>
         </section>
 
