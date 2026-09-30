@@ -9,6 +9,10 @@ import {
   SubstanceDetails,
   DailyScheduleTask,
   DayTaskCompletionLog,
+  UserProfileIdentity,
+  UserDailyHabitsRoutine,
+  DEFAULT_USER_IDENTITY,
+  DEFAULT_USER_DAILY_ROUTINE,
   DEFAULT_DAILY_SCHEDULE_TASKS,
   MOCK_TRACKED_HABITS,
   MOCK_MONTHLY_MIRROR,
@@ -27,6 +31,8 @@ const STORAGE_KEY_ACTIVE_HABIT = 'recomeca_active_habit_v1'
 const STORAGE_KEY_DAILY_TASKS = 'recomeca_daily_tasks_v1'
 const STORAGE_KEY_TASK_LOGS = 'recomeca_task_logs_v1'
 const STORAGE_KEY_RISK_SITUATIONS = 'recomeca_risk_situations_v1'
+const STORAGE_KEY_IDENTITY = 'recomeca_user_identity_v1'
+const STORAGE_KEY_DAILY_ROUTINE = 'recomeca_daily_routine_v1'
 
 const INITIAL_GOOD_ACTIONS: GoodActionRecord[] = [
   {
@@ -54,6 +60,12 @@ export interface RecomecaStore {
   contact: SupportContact
   cigaretteLogs: CigaretteLogItem[]
   episodeLogs: EpisodeLog[]
+  // Identidade "Quem é você" & Rotina diária
+  identity: UserProfileIdentity
+  updateIdentity: (patch: Partial<UserProfileIdentity>) => void
+  userGreetingName: string // Nome preferido ou nome social ou nome de registro ou "você"
+  dailyRoutine: UserDailyHabitsRoutine
+  updateDailyRoutine: (patch: Partial<UserDailyHabitsRoutine>) => void
   // Plano do Dia e Rotina
   scheduleTasks: DailyScheduleTask[]
   taskCompletionLogs: DayTaskCompletionLog[]
@@ -259,6 +271,63 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       'Mudanças e novos começos (novo emprego, rotina nova)',
     ]
   })
+
+  // Identidade "Quem é você"
+  const [identity, setIdentityState] = React.useState<UserProfileIdentity>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_IDENTITY)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // fallback
+    }
+    return DEFAULT_USER_IDENTITY
+  })
+
+  // Rotina do dia a dia
+  const [dailyRoutine, setDailyRoutineState] = React.useState<UserDailyHabitsRoutine>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_DAILY_ROUTINE)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // fallback
+    }
+    return DEFAULT_USER_DAILY_ROUTINE
+  })
+
+  const updateIdentity = React.useCallback((patch: Partial<UserProfileIdentity>) => {
+    setIdentityState((prev) => {
+      const updated = { ...prev, ...patch }
+      try {
+        localStorage.setItem(STORAGE_KEY_IDENTITY, JSON.stringify(updated))
+      } catch {
+        // ignore
+      }
+      return updated
+    })
+  }, [])
+
+  const updateDailyRoutine = React.useCallback((patch: Partial<UserDailyHabitsRoutine>) => {
+    setDailyRoutineState((prev) => {
+      const updated = { ...prev, ...patch }
+      try {
+        localStorage.setItem(STORAGE_KEY_DAILY_ROUTINE, JSON.stringify(updated))
+      } catch {
+        // ignore
+      }
+      return updated
+    })
+  }, [])
+
+  // Nome dinâmico para saudações e exibição: prioriza preferredName -> socialName -> legalName
+  const userGreetingName = React.useMemo(() => {
+    const preferred = identity.preferredName?.trim()
+    if (preferred) return preferred
+    const social = identity.socialName?.trim()
+    if (social) return social
+    const legal = identity.legalName?.trim()
+    if (legal) return legal
+    return 'você'
+  }, [identity])
 
   const [lastToastMessage, setLastToastMessage] = React.useState<string | null>(null)
 
@@ -799,6 +868,11 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       contact,
       cigaretteLogs,
       episodeLogs,
+      identity,
+      updateIdentity,
+      userGreetingName,
+      dailyRoutine,
+      updateDailyRoutine,
       scheduleTasks,
       taskCompletionLogs,
       todayCompletedTaskIds,
@@ -834,6 +908,11 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       contact,
       cigaretteLogs,
       episodeLogs,
+      identity,
+      updateIdentity,
+      userGreetingName,
+      dailyRoutine,
+      updateDailyRoutine,
       scheduleTasks,
       taskCompletionLogs,
       todayCompletedTaskIds,

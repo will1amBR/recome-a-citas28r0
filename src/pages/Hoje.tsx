@@ -63,6 +63,7 @@ export default function Hoje() {
     recordHonestEpisode,
     lastToastMessage,
     clearToast,
+    userGreetingName,
   } = useRecomecaStore()
 
   // Vício atualmente ativo para check-in e registros em /hoje
@@ -185,7 +186,7 @@ export default function Hoje() {
 
       {/* Header Mobile Leve */}
       <ScreenHeader
-        title={`Olá, ${MOCK_USER.preferredGreeting}`}
+        title={`Olá, ${userGreetingName || MOCK_USER.preferredGreeting}`}
         subtitle="Um dia de cada vez. Seu progresso continua seguro."
         rightAction={
           <button

@@ -4,6 +4,26 @@
  * Frase-guia: "Um dia de cada vez. Recomeçar faz parte."
  */
 
+export interface UserProfileIdentity {
+  legalName?: string // Nome de registro, opcional
+  preferredName?: string // Como gosta de ser chamada (nome usado no app)
+  socialName?: string // Nome social, opcional
+  genderIdentity?: string // mulher, homem, não-binário, trans, prefiro não dizer, outro
+  genderCustomDescription?: string // Se selecionou trans, outro etc., descrição opcional
+  sexualOrientation?: string // heterossexual, lésbica, gay, bissexual, pansexual, assexual, prefiro não dizer, outra
+  orientationCustomDescription?: string // descrição opcional
+}
+
+export interface UserDailyHabitsRoutine {
+  dayActivities: string[] // o que o dia tem: trabalho presencial, home office, estudo, cuidar da casa, filhos/família, momentos livres, etc.
+  commonDayDescription?: string // Como é um dia comum (texto livre opcional)
+  usagePeakTimes: string[] // Quando costuma usar: manhã, tarde, noite, madrugada
+  whatHelpsToday: string[] // O que ajuda você hoje: caminhada, música/sons, tomar água, conversar, limpar a casa, etc.
+  workStudyRoutine?: string // rotina de trabalho/estudo
+  sleepRoutine?: string // rotina de sono (ex: durmo tarde, sono picado, durmo bem...)
+  freeTimeRoutine?: string // momentos livres / fins de semana
+}
+
 export interface TrackedHabit {
   id: string
   name: string
@@ -213,6 +233,32 @@ export interface ScreenQuestion {
 // -------------------------------------------------------------
 // DADOS INICIAIS MOCKADOS
 // -------------------------------------------------------------
+
+export const DEFAULT_USER_IDENTITY: UserProfileIdentity = {
+  legalName: '',
+  preferredName: 'Camila',
+  socialName: '',
+  genderIdentity: 'mulher',
+  genderCustomDescription: '',
+  sexualOrientation: 'bissexual',
+  orientationCustomDescription: '',
+}
+
+export const DEFAULT_USER_DAILY_ROUTINE: UserDailyHabitsRoutine = {
+  dayActivities: ['Trabalho em home office', 'Cuidar da casa', 'Momentos livres'],
+  commonDayDescription:
+    'Manhãs com café e computador, pausas para organizar a casa e noites para descansar.',
+  usagePeakTimes: ['tarde', 'noite'],
+  whatHelpsToday: [
+    'Tomar água gelada',
+    'Caminhada curta',
+    'Ouvir sons suaves',
+    'Arrumar um cantinho',
+  ],
+  workStudyRoutine: 'Home office em horário comercial com momentos de pressão',
+  sleepRoutine: 'Costumo deitar por volta das 23h30',
+  freeTimeRoutine: 'Fins de semana com família e passeios ao ar livre',
+}
 
 export const MOCK_USER = {
   name: 'Camila Silva',

@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom'
 import {
   RecomecaCard,
   RecomecaButton,
+  RecomecaInput,
   ScreenHeader,
   LegalNoticeFooter,
 } from '@/components/recomeca'
 import { useRecomecaStore } from '@/lib/recomecaStore'
-import { MOCK_USER, MOCK_TRACKED_HABITS } from '@/lib/mockData'
+import { MOCK_USER } from '@/lib/mockData'
 import {
   User,
   Moon,
@@ -19,15 +20,56 @@ import {
   Activity,
   Heart,
   ChevronRight,
+  Sparkles,
+  CalendarDays,
+  Clock,
+  Check,
+  PenLine,
+  Smile,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function Perfil() {
-  const { contact, habits, updateHabitGoal } = useRecomecaStore()
+  const {
+    contact,
+    habits,
+    updateHabitGoal,
+    identity,
+    updateIdentity,
+    userGreetingName,
+    dailyRoutine,
+    updateDailyRoutine,
+  } = useRecomecaStore()
 
   // Estado para edição inline da meta do dia de cada vício
   const [editingHabitId, setEditingHabitId] = React.useState<string | null>(null)
   const [goalInputValue, setGoalInputValue] = React.useState<string>('')
+
+  // Edição inline da seção "Quem é você"
+  const [isEditingIdentity, setIsEditingIdentity] = React.useState<boolean>(false)
+  const [tempPreferredName, setTempPreferredName] = React.useState(identity.preferredName || '')
+  const [tempSocialName, setTempSocialName] = React.useState(identity.socialName || '')
+  const [tempLegalName, setTempLegalName] = React.useState(identity.legalName || '')
+  const [tempGender, setTempGender] = React.useState(identity.genderIdentity || '')
+  const [tempGenderDesc, setTempGenderDesc] = React.useState(identity.genderCustomDescription || '')
+  const [tempOrientation, setTempOrientation] = React.useState(identity.sexualOrientation || '')
+  const [tempOrientationDesc, setTempOrientationDesc] = React.useState(
+    identity.orientationCustomDescription || '',
+  )
+
+  // Edição inline da seção "Meu dia a dia"
+  const [isEditingRoutine, setIsEditingRoutine] = React.useState<boolean>(false)
+  const [tempCommonDesc, setTempCommonDesc] = React.useState(
+    dailyRoutine.commonDayDescription || '',
+  )
+  const [tempSleep, setTempSleep] = React.useState(dailyRoutine.sleepRoutine || '')
+  const [tempFreeTime, setTempFreeTime] = React.useState(dailyRoutine.freeTimeRoutine || '')
+  const [tempActivities, setTempActivities] = React.useState<string[]>(
+    dailyRoutine.dayActivities || [],
+  )
+  const [tempPeakTimes, setTempPeakTimes] = React.useState<string[]>(
+    dailyRoutine.usagePeakTimes || [],
+  )
 
   // Controle de tema claro/escuro
   const [isDarkMode, setIsDarkMode] = React.useState<boolean>(() => {
@@ -44,6 +86,102 @@ export default function Perfil() {
     }
   }
 
+  // Handlers para salvar identidade
+  const handleStartEditIdentity = () => {
+    setTempPreferredName(identity.preferredName || '')
+    setTempSocialName(identity.socialName || '')
+    setTempLegalName(identity.legalName || '')
+    setTempGender(identity.genderIdentity || '')
+    setTempGenderDesc(identity.genderCustomDescription || '')
+    setTempOrientation(identity.sexualOrientation || '')
+    setTempOrientationDesc(identity.orientationCustomDescription || '')
+    setIsEditingIdentity(true)
+  }
+
+  const handleSaveIdentity = () => {
+    updateIdentity({
+      preferredName: tempPreferredName.trim(),
+      socialName: tempSocialName.trim(),
+      legalName: tempLegalName.trim(),
+      genderIdentity: tempGender,
+      genderCustomDescription: tempGenderDesc.trim(),
+      sexualOrientation: tempOrientation,
+      orientationCustomDescription: tempOrientationDesc.trim(),
+    })
+    setIsEditingIdentity(false)
+  }
+
+  // Handlers para salvar rotina
+  const handleStartEditRoutine = () => {
+    setTempCommonDesc(dailyRoutine.commonDayDescription || '')
+    setTempSleep(dailyRoutine.sleepRoutine || '')
+    setTempFreeTime(dailyRoutine.freeTimeRoutine || '')
+    setTempActivities(dailyRoutine.dayActivities || [])
+    setTempPeakTimes(dailyRoutine.usagePeakTimes || [])
+    setIsEditingRoutine(true)
+  }
+
+  const handleSaveRoutine = () => {
+    updateDailyRoutine({
+      commonDayDescription: tempCommonDesc.trim(),
+      sleepRoutine: tempSleep.trim(),
+      freeTimeRoutine: tempFreeTime.trim(),
+      dayActivities: tempActivities,
+      usagePeakTimes: tempPeakTimes,
+    })
+    setIsEditingRoutine(false)
+  }
+
+  const toggleTempActivity = (act: string) => {
+    setTempActivities((prev) =>
+      prev.includes(act) ? prev.filter((a) => a !== act) : [...prev, act],
+    )
+  }
+
+  const toggleTempPeakTime = (timeId: string) => {
+    setTempPeakTimes((prev) =>
+      prev.includes(timeId) ? prev.filter((t) => t !== timeId) : [...prev, timeId],
+    )
+  }
+
+  const formatGenderLabel = (id?: string) => {
+    if (!id) return 'Não informado'
+    const map: Record<string, string> = {
+      mulher: 'Mulher',
+      homem: 'Homem',
+      'nao-binario': 'Não-binário',
+      trans: 'Trans',
+      outro: 'Outro',
+      'prefiro-nao-dizer': 'Prefiro não dizer',
+    }
+    return map[id] || id
+  }
+
+  const formatOrientationLabel = (id?: string) => {
+    if (!id) return 'Não informado'
+    const map: Record<string, string> = {
+      heterossexual: 'Heterossexual',
+      lesbica: 'Lésbica',
+      gay: 'Gay',
+      bissexual: 'Bissexual',
+      pansexual: 'Pansexual',
+      assexual: 'Assexual',
+      outra: 'Outra',
+      'prefiro-nao-dizer': 'Prefiro não dizer',
+    }
+    return map[id] || id
+  }
+
+  const formatTimeLabel = (id: string) => {
+    const map: Record<string, string> = {
+      manha: 'Manhã',
+      tarde: 'Tarde',
+      noite: 'Noite',
+      madrugada: 'Madrugada',
+    }
+    return map[id] || id
+  }
+
   return (
     <div className="w-full flex-1 flex flex-col font-sans selection:bg-[#7FBFA8]/30">
       <ScreenHeader
@@ -53,18 +191,23 @@ export default function Perfil() {
 
       <div className="px-4 py-4 space-y-6">
         {/* =============================================================
-            1. CABEÇALHO DO PERFIL FICTÍCIO
+            1. CABEÇALHO DO PERFIL COM NOME REAL / PREFERIDO
            ============================================================= */}
         <section className="space-y-2">
           <RecomecaCard variant="highlight" padding="lg" className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-[#7FBFA8] dark:bg-[#8FCCAE] text-[#2F4A3E] dark:text-[#1C2420] font-bold text-2xl flex items-center justify-center shrink-0 shadow-sm">
-              {MOCK_USER.name.charAt(0)}
+              {(userGreetingName || MOCK_USER.name).charAt(0).toUpperCase()}
             </div>
 
             <div className="space-y-0.5 flex-1 min-w-0">
               <h2 className="text-lg font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
-                {MOCK_USER.name}
+                {userGreetingName || MOCK_USER.name}
               </h2>
+              {identity.socialName && (
+                <p className="text-xs text-[#4CAF7D] dark:text-[#8FCCAE] font-semibold truncate">
+                  Nome social: {identity.socialName}
+                </p>
+              )}
               <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
                 Membro desde {MOCK_USER.sinceYear} • ID Anônimo: {MOCK_USER.anonymousId}
               </p>
@@ -77,7 +220,387 @@ export default function Perfil() {
         </section>
 
         {/* =============================================================
-            2. HÁBITOS EM ACOMPANHAMENTO
+            2. QUEM É VOCÊ (NOVA SEÇÃO: VISUALIZAR E EDITAR)
+           ============================================================= */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+              <User className="w-4 h-4 text-[#7FBFA8]" />
+              <span>Quem é você</span>
+            </h3>
+            {!isEditingIdentity ? (
+              <button
+                type="button"
+                onClick={handleStartEditIdentity}
+                className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline"
+              >
+                Editar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsEditingIdentity(false)}
+                className="text-xs text-[#6A7A72] hover:text-[#2F4A3E]"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+
+          <RecomecaCard variant="default" padding="md" className="space-y-3.5">
+            {isEditingIdentity ? (
+              <div className="space-y-3 animate-fade-in">
+                <RecomecaInput
+                  label="Como gosta de ser chamada? (nome no app)"
+                  placeholder="Ex.: Camila, Dani, Leo..."
+                  value={tempPreferredName}
+                  onChange={(e) => setTempPreferredName(e.target.value)}
+                />
+
+                <RecomecaInput
+                  label="Nome social (se tiver, opcional)"
+                  placeholder="Seu nome social"
+                  value={tempSocialName}
+                  onChange={(e) => setTempSocialName(e.target.value)}
+                />
+
+                <RecomecaInput
+                  label="Nome de registro (opcional)"
+                  placeholder="Nome de registro"
+                  value={tempLegalName}
+                  onChange={(e) => setTempLegalName(e.target.value)}
+                />
+
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Identidade de gênero:
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { id: 'mulher', label: 'Mulher' },
+                      { id: 'homem', label: 'Homem' },
+                      { id: 'nao-binario', label: 'Não-binário' },
+                      { id: 'trans', label: 'Trans' },
+                      { id: 'outro', label: 'Outro' },
+                      { id: 'prefiro-nao-dizer', label: 'Prefiro não dizer' },
+                    ].map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => setTempGender(g.id)}
+                        className={cn(
+                          'p-2 rounded-xl text-xs font-bold border transition-all text-left touch-target',
+                          tempGender === g.id
+                            ? 'bg-[#7FBFA8] text-white border-transparent'
+                            : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] border-[#E1E8E2]',
+                        )}
+                      >
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {['trans', 'outro', 'nao-binario'].includes(tempGender) && (
+                    <input
+                      type="text"
+                      placeholder="Como prefere descrever? (opcional)"
+                      value={tempGenderDesc}
+                      onChange={(e) => setTempGenderDesc(e.target.value)}
+                      className="w-full mt-1.5 px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#7FBFA8] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Orientação sexual (LGBTQI+):
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { id: 'heterossexual', label: 'Heterossexual' },
+                      { id: 'lesbica', label: 'Lésbica' },
+                      { id: 'gay', label: 'Gay' },
+                      { id: 'bissexual', label: 'Bissexual' },
+                      { id: 'pansexual', label: 'Pansexual' },
+                      { id: 'assexual', label: 'Assexual' },
+                      { id: 'outra', label: 'Outra' },
+                      { id: 'prefiro-nao-dizer', label: 'Prefiro não dizer' },
+                    ].map((o) => (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => setTempOrientation(o.id)}
+                        className={cn(
+                          'p-2 rounded-xl text-xs font-bold border transition-all text-left touch-target',
+                          tempOrientation === o.id
+                            ? 'bg-[#7FBFA8] text-white border-transparent'
+                            : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] border-[#E1E8E2]',
+                        )}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {['outra', 'pansexual', 'bissexual', 'assexual'].includes(tempOrientation) && (
+                    <input
+                      type="text"
+                      placeholder="Como prefere descrever? (opcional)"
+                      value={tempOrientationDesc}
+                      onChange={(e) => setTempOrientationDesc(e.target.value)}
+                      className="w-full mt-1.5 px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#7FBFA8] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                    />
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingIdentity(false)}
+                    className="px-3 py-1.5 text-xs text-[#6A7A72] hover:text-[#2F4A3E]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveIdentity}
+                    className="px-4 py-1.5 rounded-xl bg-[#7FBFA8] text-white text-xs font-bold shadow-xs hover:bg-[#6DA98F]"
+                  >
+                    Salvar alterações
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] uppercase font-bold block">
+                      Como gosta de ser chamada
+                    </span>
+                    <span className="font-bold text-[#2F4A3E] dark:text-[#E8EFE9] text-sm">
+                      {identity.preferredName || 'Não informado'}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] uppercase font-bold block">
+                      Nome social
+                    </span>
+                    <span className="font-bold text-[#2F4A3E] dark:text-[#E8EFE9] text-sm">
+                      {identity.socialName || 'Não informado'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] uppercase font-bold block">
+                      Identidade de Gênero
+                    </span>
+                    <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      {formatGenderLabel(identity.genderIdentity)}
+                    </span>
+                    {identity.genderCustomDescription && (
+                      <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block mt-0.5">
+                        &ldquo;{identity.genderCustomDescription}&rdquo;
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] uppercase font-bold block">
+                      Orientação (LGBTQI+)
+                    </span>
+                    <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      {formatOrientationLabel(identity.sexualOrientation)}
+                    </span>
+                    {identity.orientationCustomDescription && (
+                      <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block mt-0.5">
+                        &ldquo;{identity.orientationCustomDescription}&rdquo;
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {identity.legalName && (
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] pt-1 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                    Nome de registro protegido: <strong>{identity.legalName}</strong>
+                  </p>
+                )}
+              </div>
+            )}
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            3. MEU DIA A DIA (NOVA SEÇÃO: VISUALIZAR E EDITAR)
+           ============================================================= */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+              <CalendarDays className="w-4 h-4 text-[#7FBFA8]" />
+              <span>Meu dia a dia & Rotina</span>
+            </h3>
+            {!isEditingRoutine ? (
+              <button
+                type="button"
+                onClick={handleStartEditRoutine}
+                className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline"
+              >
+                Editar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsEditingRoutine(false)}
+                className="text-xs text-[#6A7A72] hover:text-[#2F4A3E]"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+
+          <RecomecaCard variant="default" padding="md" className="space-y-3.5">
+            {isEditingRoutine ? (
+              <div className="space-y-3 animate-fade-in">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Como é um dia comum para você?
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={tempCommonDesc}
+                    onChange={(e) => setTempCommonDesc(e.target.value)}
+                    placeholder="Conte um pouco da sua rotina..."
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#7FBFA8] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Horários de maior vontade / uso:
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {['manha', 'tarde', 'noite', 'madrugada'].map((tId) => (
+                      <button
+                        key={tId}
+                        type="button"
+                        onClick={() => toggleTempPeakTime(tId)}
+                        className={cn(
+                          'p-2 rounded-xl text-xs font-bold border transition-all text-left touch-target flex items-center justify-between',
+                          tempPeakTimes.includes(tId)
+                            ? 'bg-[#7FBFA8] text-white border-transparent'
+                            : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] border-[#E1E8E2]',
+                        )}
+                      >
+                        <span>{formatTimeLabel(tId)}</span>
+                        {tempPeakTimes.includes(tId) && <Check className="w-3.5 h-3.5" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <RecomecaInput
+                  label="Rotina de sono (opcional)"
+                  placeholder="Ex.: Durmo tarde, durmo bem..."
+                  value={tempSleep}
+                  onChange={(e) => setTempSleep(e.target.value)}
+                />
+
+                <RecomecaInput
+                  label="Momentos livres / fins de semana (opcional)"
+                  placeholder="Ex.: Fico em casa, saio para caminhar..."
+                  value={tempFreeTime}
+                  onChange={(e) => setTempFreeTime(e.target.value)}
+                />
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingRoutine(false)}
+                    className="px-3 py-1.5 text-xs text-[#6A7A72] hover:text-[#2F4A3E]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveRoutine}
+                    className="px-4 py-1.5 rounded-xl bg-[#7FBFA8] text-white text-xs font-bold shadow-xs hover:bg-[#6DA98F]"
+                  >
+                    Salvar rotina
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 text-xs">
+                {dailyRoutine.commonDayDescription && (
+                  <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] space-y-1">
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] uppercase font-bold block">
+                      Como é um dia comum
+                    </span>
+                    <p className="text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed">
+                      &ldquo;{dailyRoutine.commonDayDescription}&rdquo;
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] uppercase font-bold block">
+                      Quando costuma usar / pico
+                    </span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {dailyRoutine.usagePeakTimes.length > 0 ? (
+                        dailyRoutine.usagePeakTimes.map((t) => (
+                          <span
+                            key={t}
+                            className="px-2 py-0.5 rounded-md bg-[#E8F3EC] dark:bg-[#2A3831] text-[11px] font-bold text-[#2F4A3E] dark:text-[#8FCCAE]"
+                          >
+                            {formatTimeLabel(t)}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[#6A7A72]">Não informado</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34]">
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] uppercase font-bold block">
+                      O que seu dia tem
+                    </span>
+                    <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] block mt-1">
+                      {dailyRoutine.dayActivities.length > 0
+                        ? `${dailyRoutine.dayActivities.length} atividades mapeadas`
+                        : 'Não informado'}
+                    </span>
+                  </div>
+                </div>
+
+                {dailyRoutine.whatHelpsToday.length > 0 && (
+                  <div className="space-y-1 pt-1 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] font-semibold block">
+                      O que ajuda quando a onda sobe:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {dailyRoutine.whatHelpsToday.map((h) => (
+                        <span
+                          key={h}
+                          className="px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[10px] font-semibold text-[#4CAF7D] dark:text-[#8FCCAE]"
+                        >
+                          {h}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            4. HÁBITOS EM ACOMPANHAMENTO
            ============================================================= */}
         <section className="space-y-2">
           <div className="flex items-center justify-between">
@@ -85,7 +608,7 @@ export default function Perfil() {
               Hábitos em Acompanhamento
             </h3>
             <Link to="/onboarding" className="text-xs font-semibold text-[#7FBFA8] hover:underline">
-              Editar
+              Editar no fluxo
             </Link>
           </div>
 
@@ -102,7 +625,6 @@ export default function Perfil() {
               }
 
               const handleSaveGoal = () => {
-                // Tenta extrair número caso haja para atualizar numericLimit se aplicável
                 const numMatch = goalInputValue.match(/\d+/)
                 const parsedNum = numMatch ? parseInt(numMatch[0], 10) : undefined
                 updateHabitGoal(habit.id, goalInputValue.trim(), parsedNum)
@@ -201,7 +723,7 @@ export default function Perfil() {
         </section>
 
         {/* =============================================================
-            3. CONTATO DE EMERGÊNCIA CONFIGURADO
+            5. CONTATO DE EMERGÊNCIA CONFIGURADO
            ============================================================= */}
         <section className="space-y-2">
           <div className="flex items-center justify-between">
@@ -244,7 +766,7 @@ export default function Perfil() {
         </section>
 
         {/* =============================================================
-            4. PREFERÊNCIAS VISUAIS (TEMA CLARO / ESCURO)
+            6. PREFERÊNCIAS VISUAIS (TEMA CLARO / ESCURO)
            ============================================================= */}
         <section className="space-y-2">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
@@ -290,7 +812,7 @@ export default function Perfil() {
         </section>
 
         {/* =============================================================
-            5. PRIVACIDADE E TERMOS (LGPD)
+            7. PRIVACIDADE E TERMOS (LGPD)
            ============================================================= */}
         <section className="space-y-2">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
