@@ -3,13 +3,16 @@ import {
   TrackedHabit,
   GoodActionRecord,
   CravingTechniqueMetric,
+  SupportContact,
   MOCK_TRACKED_HABITS,
   MOCK_MONTHLY_MIRROR,
+  MOCK_CONTACT,
 } from '@/lib/mockData'
 
 const STORAGE_KEY_ACTIONS = 'recomeca_good_actions_v1'
 const STORAGE_KEY_HABITS = 'recomeca_habits_v1'
 const STORAGE_KEY_TECHNIQUES = 'recomeca_technique_metrics_v1'
+const STORAGE_KEY_CONTACT = 'recomeca_contact_v1'
 
 const INITIAL_GOOD_ACTIONS: GoodActionRecord[] = [
   {
@@ -34,6 +37,8 @@ export interface RecomecaStore {
   goodActionsStreakDays: number
   techniqueMetrics: CravingTechniqueMetric[]
   lastToastMessage: string | null
+  contact: SupportContact
+  updateContact: (contact: Partial<SupportContact>) => void
   addGoodAction: (action: Omit<GoodActionRecord, 'id' | 'timestamp'>) => void
   recordTechniqueCompletion: (
     techniqueId: string,
@@ -87,6 +92,17 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
     return MOCK_MONTHLY_MIRROR.cravingTechniquesEffectiveness
   })
 
+  // Contato de emergência/apoio pessoal
+  const [contact, setContact] = React.useState<SupportContact>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CONTACT)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // fallback
+    }
+    return MOCK_CONTACT
+  })
+
   const [lastToastMessage, setLastToastMessage] = React.useState<string | null>(null)
 
   // Salvar no localStorage
@@ -113,6 +129,18 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       // ignore
     }
   }, [techniqueMetrics])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CONTACT, JSON.stringify(contact))
+    } catch {
+      // ignore
+    }
+  }, [contact])
+
+  const updateContact = React.useCallback((patch: Partial<SupportContact>) => {
+    setContact((prev) => ({ ...prev, ...patch }))
+  }, [])
 
   const clearToast = React.useCallback(() => {
     setLastToastMessage(null)
@@ -327,6 +355,8 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       goodActionsStreakDays,
       techniqueMetrics,
       lastToastMessage,
+      contact,
+      updateContact,
       addGoodAction,
       recordTechniqueCompletion,
       recordActivityCompletion,
@@ -342,6 +372,8 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       goodActionsStreakDays,
       techniqueMetrics,
       lastToastMessage,
+      contact,
+      updateContact,
       addGoodAction,
       recordTechniqueCompletion,
       recordActivityCompletion,

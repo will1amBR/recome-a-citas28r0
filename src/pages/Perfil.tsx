@@ -6,7 +6,8 @@ import {
   ScreenHeader,
   LegalNoticeFooter,
 } from '@/components/recomeca'
-import { MOCK_USER, MOCK_CONTACT, MOCK_TRACKED_HABITS } from '@/lib/mockData'
+import { useRecomecaStore } from '@/lib/recomecaStore'
+import { MOCK_USER, MOCK_TRACKED_HABITS } from '@/lib/mockData'
 import {
   User,
   Moon,
@@ -22,6 +23,8 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function Perfil() {
+  const { contact } = useRecomecaStore()
+
   // Controle de tema claro/escuro
   const [isDarkMode, setIsDarkMode] = React.useState<boolean>(() => {
     return document.documentElement.classList.contains('dark')
@@ -123,34 +126,41 @@ export default function Perfil() {
             3. CONTATO DE EMERGÊNCIA CONFIGURADO
            ============================================================= */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-            Contato de Emergência Atual
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+              Contato de Emergência Atual
+            </h3>
+            <Link to="/onboarding" className="text-xs font-semibold text-[#7FBFA8] hover:underline">
+              Editar
+            </Link>
+          </div>
 
           <RecomecaCard variant="default" padding="md" className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#E86A4C] flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center shrink-0">
                   <HeartHandshake className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
                   <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
-                    {MOCK_CONTACT.name}
+                    {contact.name || 'Contato não configurado'}
                   </h4>
                   <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
-                    {MOCK_CONTACT.displayPhone}
+                    {contact.displayPhone || contact.phone || 'Sem telefone'}
                   </span>
                 </div>
               </div>
 
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] border border-[#4CAF7D]/30 shrink-0">
-                Avisado
-              </span>
+              {contact.hasConsent && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] border border-[#4CAF7D]/30 shrink-0">
+                  Avisado
+                </span>
+              )}
             </div>
 
             <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] pt-1 border-t border-[#E1E8E2] dark:border-[#2D3A34] leading-relaxed">
-              O botão SOS aciona diretamente este número via ligação e WhatsApp com sua localização
-              aproximada.
+              O botão SOS e a tela de Apoio acionam diretamente este contato para ligação e
+              conversa.
             </p>
           </RecomecaCard>
         </section>

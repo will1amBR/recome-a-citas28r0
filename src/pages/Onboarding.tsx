@@ -1,7 +1,8 @@
 import * as React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RecomecaButton, RecomecaCard, RecomecaInput, ProgressBar } from '@/components/recomeca'
-import { ONBOARDING_SUBSTANCES, MOCK_CONTACT } from '@/lib/mockData'
+import { useRecomecaStore } from '@/lib/recomecaStore'
+import { ONBOARDING_SUBSTANCES } from '@/lib/mockData'
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,6 +24,7 @@ interface HabitDetailConfig {
 
 export default function Onboarding() {
   const navigate = useNavigate()
+  const { contact, updateContact } = useRecomecaStore()
 
   // Etapa atual: 1 a 5
   const [currentStep, setCurrentStep] = React.useState<number>(1)
@@ -37,9 +39,9 @@ export default function Onboarding() {
   })
 
   // 3) Contato de emergência
-  const [contactName, setContactName] = React.useState(MOCK_CONTACT.name)
-  const [contactPhone, setContactPhone] = React.useState(MOCK_CONTACT.displayPhone)
-  const [contactNotified, setContactNotified] = React.useState(true)
+  const [contactName, setContactName] = React.useState(contact.name)
+  const [contactPhone, setContactPhone] = React.useState(contact.displayPhone || contact.phone)
+  const [contactNotified, setContactNotified] = React.useState(contact.hasConsent)
 
   // 4) Consentimento LGPD
   const [lgpdConsent, setLgpdConsent] = React.useState(true)
@@ -111,6 +113,12 @@ export default function Onboarding() {
         setValidationError('Preencha o nome e o telefone do seu contato de confiança.')
         return
       }
+      updateContact({
+        name: contactName.trim(),
+        phone: contactPhone.replace(/\D/g, ''),
+        displayPhone: contactPhone.trim(),
+        hasConsent: contactNotified,
+      })
       setCurrentStep(5)
       return
     }

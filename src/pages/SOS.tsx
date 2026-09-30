@@ -6,7 +6,7 @@ import {
   ScreenHeader,
   LegalNoticeFooter,
 } from '@/components/recomeca'
-import { MOCK_CONTACT, CRAVING_PROTOCOLS } from '@/lib/mockData'
+import { CRAVING_PROTOCOLS } from '@/lib/mockData'
 import { ambientAudio } from '@/lib/ambientSound'
 import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils'
 
 export default function SOS() {
   const navigate = useNavigate()
-  const { recordTechniqueCompletion } = useRecomecaStore()
+  const { recordTechniqueCompletion, contact } = useRecomecaStore()
   const [sosFinishedOutcome, setSosFinishedOutcome] = React.useState<'passou' | 'usou' | null>(null)
 
   // Estado da geolocalização para o WhatsApp
@@ -101,18 +101,18 @@ export default function SOS() {
 
   // Monta mensagem exata do WhatsApp com link de localização ou sem ele
   const generateWhatsAppUrl = () => {
-    const contactPhoneDigits = MOCK_CONTACT.phone.replace(/\D/g, '')
+    const digits = contact.phone.replace(/\D/g, '')
+    const phoneWithCountry = digits.startsWith('55') ? digits : `55${digits}`
     // Exigência do prompt:
     // "Oi, [nome]. Estou passando por um momento difícil e preciso de você. Minha localização: [link]"
-    // [link] é https://maps.google.com/?q=LAT,LNG
-    let messageText = `Oi, ${MOCK_CONTACT.name}. Estou passando por um momento difícil e preciso de você.`
+    let messageText = `Oi, ${contact.name}. Estou passando por um momento difícil e preciso de você.`
 
     if (coords) {
       const locationLink = `https://maps.google.com/?q=${coords.lat},${coords.lng}`
       messageText += ` Minha localização: ${locationLink}`
     }
 
-    return `https://wa.me/55${contactPhoneDigits}?text=${encodeURIComponent(messageText)}`
+    return `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(messageText)}`
   }
 
   return (
@@ -148,65 +148,93 @@ export default function SOS() {
           </span>
 
           {/* 1.1 Ligar para o contato de emergência */}
-          <a
-            href={`tel:+55${MOCK_CONTACT.phone.replace(/\D/g, '')}`}
-            className={cn(
-              'flex flex-wrap items-center justify-between gap-2 p-3.5 sm:p-4 rounded-2xl',
-              'bg-[#E86A4C] hover:bg-[#D95C3F] dark:bg-[#F07856] dark:hover:bg-[#FF8A6A]',
-              'text-white font-bold text-sm tracking-tight',
-              'shadow-[0_8px_24px_rgba(232,106,76,0.35)]',
-              'transition-all touch-target focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E86A4C]',
-            )}
-            aria-label={`Ligar para seu contato de emergência: ${MOCK_CONTACT.name}`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                <PhoneCall className="w-5 h-5 text-white" />
+          {contact.phone.replace(/\D/g, '') ? (
+            <a
+              href={`tel:${contact.phone.replace(/\D/g, '')}`}
+              className={cn(
+                'flex flex-wrap items-center justify-between gap-2 p-3.5 sm:p-4 rounded-2xl',
+                'bg-[#E86A4C] hover:bg-[#D95C3F] dark:bg-[#F07856] dark:hover:bg-[#FF8A6A]',
+                'text-white font-bold text-sm tracking-tight',
+                'shadow-[0_8px_24px_rgba(232,106,76,0.35)]',
+                'transition-all touch-target focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E86A4C]',
+              )}
+              aria-label={`Ligar para seu contato de emergência: ${contact.name}`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <PhoneCall className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left min-w-0">
+                  <span className="block text-xs opacity-90 font-medium truncate">
+                    Ligar para contato de apoio
+                  </span>
+                  <span className="text-base font-bold truncate block">{contact.name}</span>
+                </div>
               </div>
-              <div className="text-left min-w-0">
-                <span className="block text-xs opacity-90 font-medium truncate">
-                  Ligar para contato de apoio
-                </span>
-                <span className="text-base font-bold truncate block">{MOCK_CONTACT.name}</span>
+              <span className="text-xs font-semibold underline tabular-nums opacity-95 shrink-0 ml-auto">
+                {contact.displayPhone || contact.phone}
+              </span>
+            </a>
+          ) : (
+            <Link
+              to="/perfil"
+              className={cn(
+                'flex flex-wrap items-center justify-between gap-2 p-3.5 sm:p-4 rounded-2xl',
+                'bg-[#E86A4C] hover:bg-[#D95C3F] dark:bg-[#F07856] dark:hover:bg-[#FF8A6A]',
+                'text-white font-bold text-sm tracking-tight',
+                'shadow-[0_8px_24px_rgba(232,106,76,0.35)] transition-all touch-target',
+              )}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <PhoneCall className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left min-w-0">
+                  <span className="block text-xs opacity-90 font-medium truncate">
+                    Contato de apoio não cadastrado
+                  </span>
+                  <span className="text-sm font-bold truncate block">
+                    Toque para cadastrar no perfil
+                  </span>
+                </div>
               </div>
-            </div>
-            <span className="text-xs font-semibold underline tabular-nums opacity-95 shrink-0 ml-auto">
-              {MOCK_CONTACT.displayPhone}
-            </span>
-          </a>
+            </Link>
+          )}
 
           {/* 1.2 WhatsApp com localização */}
-          <a
-            href={generateWhatsAppUrl()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              'flex flex-wrap items-center justify-between gap-2 p-3.5 sm:p-4 rounded-2xl',
-              'bg-[#4CAF7D] hover:bg-[#3d9668] text-white font-bold text-sm',
-              'shadow-[0_4px_16px_rgba(76,175,125,0.3)]',
-              'transition-all touch-target focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4CAF7D]',
-            )}
-            aria-label={`Enviar mensagem no WhatsApp para ${MOCK_CONTACT.name}`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                <MessageCircle className="w-5 h-5 text-white" />
+          {contact.phone.replace(/\D/g, '') && (
+            <a
+              href={generateWhatsAppUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'flex flex-wrap items-center justify-between gap-2 p-3.5 sm:p-4 rounded-2xl',
+                'bg-[#4CAF7D] hover:bg-[#3d9668] text-white font-bold text-sm',
+                'shadow-[0_4px_16px_rgba(76,175,125,0.3)]',
+                'transition-all touch-target focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4CAF7D]',
+              )}
+              aria-label={`Enviar mensagem no WhatsApp para ${contact.name}`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left min-w-0">
+                  <span className="block text-xs opacity-90 font-medium truncate">
+                    WhatsApp com mensagem pronta
+                  </span>
+                  <span className="text-sm font-bold truncate block">
+                    Mandar mensagem para {contact.name}
+                  </span>
+                </div>
               </div>
-              <div className="text-left min-w-0">
-                <span className="block text-xs opacity-90 font-medium truncate">
-                  WhatsApp com mensagem pronta
+              {coords && (
+                <span className="text-[11px] font-semibold flex items-center gap-1 bg-white/20 px-2 py-1 rounded-lg shrink-0 ml-auto">
+                  <MapPin className="w-3 h-3" /> com mapa
                 </span>
-                <span className="text-sm font-bold truncate block">
-                  Mandar mensagem para {MOCK_CONTACT.name}
-                </span>
-              </div>
-            </div>
-            {coords && (
-              <span className="text-[11px] font-semibold flex items-center gap-1 bg-white/20 px-2 py-1 rounded-lg shrink-0 ml-auto">
-                <MapPin className="w-3 h-3" /> com mapa
-              </span>
-            )}
-          </a>
+              )}
+            </a>
+          )}
 
           {/* 1.3 Ligar SAMU 192 e CVV 188 */}
           <div className="grid grid-cols-2 gap-2.5 pt-1">
