@@ -8,6 +8,7 @@ import {
   ProgressBar,
   ScreenHeader,
   LegalNoticeFooter,
+  CigaretteQuickLogModal,
 } from '@/components/recomeca'
 import {
   MOCK_USER,
@@ -48,11 +49,19 @@ export default function Hoje() {
     goodActions,
     goodActionsStreakDays,
     updateCigarettes,
+    logCigaretteWithDetails,
+    removeLastCigaretteLog,
+    cigaretteLogs,
     recordCheckinDone,
     recordTechniqueCompletion,
     lastToastMessage,
     clearToast,
   } = useRecomecaStore()
+
+  // Estado do Modal Rápido de Cigarro
+  const [isCigaretteModalOpen, setIsCigaretteModalOpen] = React.useState<boolean>(false)
+  const [activeCigaretteHabitId, setActiveCigaretteHabitId] =
+    React.useState<string>('habit-cigarro')
 
   // Mensagem diária acolhedora sorteada
   const [phraseIndex, setPhraseIndex] = React.useState<number>(0)
@@ -315,9 +324,15 @@ export default function Hoje() {
                       {/* Botão Menos 1 */}
                       <button
                         type="button"
-                        onClick={() => updateCigarettes(habit.id, -1)}
-                        aria-label="Diminuir 1 cigarro"
-                        className="w-14 h-14 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8]/20 flex items-center justify-center border border-[#7FBFA8]/40 transition-all active:scale-95 touch-target shadow-sm"
+                        onClick={() => removeLastCigaretteLog(habit.id)}
+                        disabled={count <= 0}
+                        aria-label="Diminuir 1 cigarro ou desfazer último"
+                        className={cn(
+                          'w-14 h-14 rounded-2xl flex items-center justify-center border transition-all active:scale-95 touch-target shadow-sm',
+                          count > 0
+                            ? 'bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8]/20 border-[#7FBFA8]/40'
+                            : 'bg-[#F4F7F2] dark:bg-[#202723] text-[#6A7A72]/40 border-transparent cursor-not-allowed',
+                        )}
                       >
                         <Minus className="w-6 h-6 stroke-[3px]" />
                       </button>
@@ -337,16 +352,58 @@ export default function Hoje() {
                         </span>
                       </div>
 
-                      {/* Botão Mais 1 */}
+                      {/* Botão Mais 1 (Abre modal rápido de horário + contexto) */}
                       <button
                         type="button"
-                        onClick={() => updateCigarettes(habit.id, 1)}
-                        aria-label="Registrar 1 cigarro fumado"
+                        onClick={() => {
+                          setActiveCigaretteHabitId(habit.id)
+                          setIsCigaretteModalOpen(true)
+                        }}
+                        aria-label="Registrar cigarro com horário e motivo"
                         className="w-14 h-14 rounded-2xl bg-[#7FBFA8] hover:bg-[#6DA98F] text-white flex items-center justify-center transition-all active:scale-95 touch-target shadow-md"
                       >
                         <Plus className="w-6 h-6 stroke-[3px]" />
                       </button>
                     </div>
+
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveCigaretteHabitId(habit.id)
+                          setIsCigaretteModalOpen(true)
+                        }}
+                        className="text-xs font-bold text-[#4CAF7D] hover:underline inline-flex items-center gap-1"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Toque no +1 para horário e momento (2 toques)</span>
+                      </button>
+                    </div>
+
+                    {/* Últimos cigarros registrados hoje com horário e contexto */}
+                    {cigaretteLogs.length > 0 && (
+                      <div className="pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34] space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-[#6A7A72] dark:text-[#A0B0A7]">
+                          <span>Momentos registrados hoje:</span>
+                          <Link to="/diario" className="text-[#4CAF7D] hover:underline">
+                            Ver métricas no Diário →
+                          </Link>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                          {cigaretteLogs.slice(0, 5).map((cig) => (
+                            <span
+                              key={cig.id}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[11px] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                            >
+                              <Clock className="w-3 h-3 text-[#7FBFA8]" />
+                              <strong className="tabular-nums">{cig.timestamp}</strong>
+                              <span>•</span>
+                              <span>{cig.context}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Total da semana e comparação amigável */}
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34] text-center text-xs">
@@ -982,6 +1039,23 @@ export default function Hoje() {
         {/* Aviso legal obrigatório */}
         <LegalNoticeFooter />
       </div>
+
+      {/* MODAL RÁPIDO PARA MARCAR CIGARRO COM HORÁRIO E CONTEXTO */}
+      <CigaretteQuickLogModal
+        open={isCigaretteModalOpen}
+        onOpenChange={setIsCigaretteModalOpen}
+        currentCount={cigaretteHabits[0]?.cigarettesToday ?? 0}
+        dailyGoal={cigaretteHabits[0]?.dailyLimit ?? 6}
+        onConfirm={({ timestamp, context, quantity, note }) => {
+          logCigaretteWithDetails({
+            habitId: activeCigaretteHabitId,
+            timestamp,
+            context,
+            quantity,
+            note,
+          })
+        }}
+      />
     </div>
   )
 }

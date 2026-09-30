@@ -10,7 +10,12 @@ import {
   ScreenHeader,
   LegalNoticeFooter,
 } from '@/components/recomeca'
-import { MOCK_TRACKED_HABITS, ONBOARDING_SUBSTANCES } from '@/lib/mockData'
+import {
+  MOCK_TRACKED_HABITS,
+  ONBOARDING_SUBSTANCES,
+  CIGARETTE_CONTEXTS,
+  SubstanceDetails,
+} from '@/lib/mockData'
 import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
   CheckCircle2,
@@ -25,6 +30,9 @@ import {
   Shuffle,
   Info,
   Cigarette,
+  Users,
+  Package,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -39,9 +47,42 @@ const DEFAULT_TRIGGERS = [
   'outro',
 ]
 
+// Durações comuns de uso (sem julgamento)
+const USAGE_DURATIONS = [
+  'Em 15 a 30 minutos',
+  'Em uma hora',
+  'Em algumas horas (2 a 4h)',
+  'Numa noite',
+  'Ao longo do dia',
+  'Ao longo de vários dias',
+  'Outro ritmo',
+] as const
+
+// Valores rápidos de compra para substâncias com gramas/porções
+const COMMON_BOUGHT_AMOUNTS = ['0,5g', '1g', '2g', '3g', '5g', 'outro'] as const
+const COMMON_USED_AMOUNTS = ['0,5g', '1g', '2g', '3g', 'tudo o que comprei', 'outro'] as const
+
+// Tipos comuns para álcool
+const ALCOHOL_UNITS_SUGGESTIONS = [
+  '1 lata / long neck (350ml)',
+  '2 a 3 latas',
+  '4 ou mais latas',
+  '1 ou 2 taças de vinho',
+  '1 garrafa de vinho',
+  '1 dose de destilado (50ml)',
+  '2 a 3 doses',
+  'chope no bar / saída',
+] as const
+
 export default function Registrar() {
   const navigate = useNavigate()
-  const { recordHonestEpisode } = useRecomecaStore()
+  const { recordHonestEpisode, logCigaretteWithDetails } = useRecomecaStore()
+
+  // Horário atual padrão
+  const now = new Date()
+  const defaultTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
+    now.getMinutes(),
+  ).padStart(2, '0')}`
 
   // Campos ricos, humanos e 100% opcionais
   const [mood, setMood] = React.useState<string>('dificil')
@@ -49,12 +90,35 @@ export default function Registrar() {
     MOCK_TRACKED_HABITS[0].name,
   )
   const [amountUsed, setAmountUsed] = React.useState<string>('')
+  const [episodeTime, setEpisodeTime] = React.useState<string>(defaultTimeStr)
 
   // Campos específicos de tabaco / cigarros
   const [cigaretteInputMode, setCigaretteInputMode] = React.useState<'cigarros' | 'macos'>(
     'cigarros',
   )
   const [cigaretteQuantity, setCigaretteQuantity] = React.useState<string>('3')
+  const [cigaretteContext, setCigaretteContext] = React.useState<string>('Depois do almoço')
+  const [customCigaretteContext, setCustomCigaretteContext] = React.useState<string>('')
+
+  // Campos de substâncias (cocaína, maconha, MD, LSD, remédios, etc.)
+  const [boughtAmount, setBoughtAmount] = React.useState<string>('1g')
+  const [customBoughtAmount, setCustomBoughtAmount] = React.useState<string>('')
+  const [substanceUsedAmount, setSubstanceUsedAmount] = React.useState<string>('1g')
+  const [customUsedAmount, setCustomUsedAmount] = React.useState<string>('')
+  const [usageDuration, setUsageDuration] = React.useState<string>('Numa noite')
+  const [sharedWithOthers, setSharedWithOthers] = React.useState<
+    'sim' | 'nao' | 'sozinho' | 'outro'
+  >('sim')
+  const [sharedNotes, setSharedNotes] = React.useState<string>('')
+
+  // Campos de álcool
+  const [alcoholType, setAlcoholType] = React.useState<'cerveja' | 'vinho' | 'destilado' | 'outro'>(
+    'cerveja',
+  )
+  const [alcoholUnitChosen, setAlcoholUnitChosen] = React.useState<string>(
+    '1 lata / long neck (350ml)',
+  )
+  const [customAlcoholUnits, setCustomAlcoholUnits] = React.useState<string>('')
 
   const [selectedTriggers, setSelectedTriggers] = React.useState<string[]>(['estresse'])
   const [freeText, setFreeText] = React.useState<string>('')
@@ -130,14 +194,92 @@ export default function Registrar() {
     }
   }
 
+  const isAlcoholSelected =
+    selectedSubstance.toLowerCase().includes('álcool') ||
+    selectedSubstance.toLowerCase().includes('alcool')
+
+  const isDosedSubstance =
+    !isTobaccoSelected &&
+    !isAlcoholSelected &&
+    ['cocaína', 'cocaina', 'maconha', 'md', 'lsd', 'opioides', 'calmantes', 'outras'].some((s) =>
+      selectedSubstance.toLowerCase().includes(s),
+    )
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     let cigCount: number | undefined
+    const finalCigContext =
+      cigaretteContext === 'Outro momento' && customCigaretteContext.trim()
+        ? customCigaretteContext.trim()
+        : cigaretteContext
+
     if (isTobaccoSelected) {
       const num = parseFloat(cigaretteQuantity) || 0
       cigCount = cigaretteInputMode === 'macos' ? Math.round(num * 20) : Math.round(num)
+
+      // Também adiciona ao log individual de cigarros para métricas
+      logCigaretteWithDetails({
+        timestamp: episodeTime,
+        context: finalCigContext || 'Outro momento',
+        quantity: Math.max(1, cigCount),
+        note: freeText.slice(0, 100),
+      })
     }
-    recordHonestEpisode(selectedSubstance, cigCount)
+
+    const finalBought =
+      boughtAmount === 'outro' && customBoughtAmount.trim()
+        ? customBoughtAmount.trim()
+        : boughtAmount
+    const finalUsed =
+      substanceUsedAmount === 'outro' && customUsedAmount.trim()
+        ? customUsedAmount.trim()
+        : substanceUsedAmount
+    const finalAlcoholUnits =
+      alcoholUnitChosen === 'outro' && customAlcoholUnits.trim()
+        ? customAlcoholUnits.trim()
+        : alcoholUnitChosen
+
+    const details: SubstanceDetails = {
+      boughtAmount: isDosedSubstance ? finalBought : undefined,
+      usedAmount: isDosedSubstance
+        ? finalUsed
+        : isTobaccoSelected
+          ? `${cigaretteQuantity} ${cigaretteInputMode}`
+          : amountUsed || finalAlcoholUnits,
+      usageDuration,
+      sharedWithOthers,
+      alcoholType: isAlcoholSelected ? alcoholType : undefined,
+      alcoholUnits: isAlcoholSelected ? finalAlcoholUnits : undefined,
+    }
+
+    const receiptData =
+      receiptMode === 'manual' && spentAmount
+        ? {
+            spentAmount: parseFloat(spentAmount) || 0,
+            arrivalTime: arrivalTime || '20:00',
+            departureTime: departureTime || '23:00',
+            durationMinutes: 180,
+            itemsConsumed: itemsList,
+          }
+        : undefined
+
+    recordHonestEpisode(selectedSubstance, cigCount, {
+      time: episodeTime,
+      amountDescription: isTobaccoSelected
+        ? `${cigaretteQuantity} ${cigaretteInputMode} (${finalCigContext})`
+        : isAlcoholSelected
+          ? `${alcoholType} • ${finalAlcoholUnits}`
+          : `${finalUsed || amountUsed || 'Uso registrado'} (${usageDuration})`,
+      mood,
+      triggers: selectedTriggers,
+      freeText,
+      whatHappenedBefore,
+      whatHappenedAfter: consequencesText || 'Registrado com honestidade e calma.',
+      cravingTime: hadCravingBefore === 'sim' ? cravingTime : undefined,
+      receipt: receiptData,
+      details,
+    })
+
     setIsSuccessModalOpen(true)
   }
 
@@ -345,9 +487,44 @@ export default function Registrar() {
                 </select>
               </div>
 
-              {/* Registro específico de cigarros / maços quando é tabaco ou cigarro */}
-              {isTobaccoSelected ? (
-                <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/50 space-y-3">
+              {/* Horário do episódio */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="ep-time"
+                    className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-[#7FBFA8]" />
+                    <span>Horário do consumo</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date()
+                      setEpisodeTime(
+                        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(
+                          2,
+                          '0',
+                        )}`,
+                      )
+                    }}
+                    className="text-[11px] text-[#4CAF7D] font-bold hover:underline"
+                  >
+                    Agora
+                  </button>
+                </div>
+                <input
+                  id="ep-time"
+                  type="time"
+                  value={episodeTime}
+                  onChange={(e) => setEpisodeTime(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                />
+              </div>
+
+              {/* CASO 1: REGISTRO DE TABACO / CIGARRO COM HORÁRIO E CONTEXTO ("DEPOIS DO ALMOÇO", "ANTES DO JANTAR", ETC) */}
+              {isTobaccoSelected && (
+                <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/50 space-y-3.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
                       <Cigarette className="w-4 h-4 text-[#4CAF7D]" />
@@ -394,7 +571,7 @@ export default function Registrar() {
                       value={cigaretteQuantity}
                       onChange={(e) => setCigaretteQuantity(e.target.value)}
                       placeholder={
-                        cigaretteInputMode === 'macos' ? 'Ex.: 0.5 maço' : 'Ex.: 4 cigarros'
+                        cigaretteInputMode === 'macos' ? 'Ex.: 0.5 maço' : 'Ex.: 3 cigarros'
                       }
                       className="w-full px-3.5 py-2.5 rounded-xl text-sm font-bold tabular-nums bg-white dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
                     />
@@ -408,11 +585,341 @@ export default function Registrar() {
                           )} cigarros soltos. Atualiza seus cigarros de hoje e da semana.`}
                     </p>
                   </div>
+
+                  {/* Por que / contexto do cigarro */}
+                  <div className="space-y-1.5 pt-2 border-t border-[#7FBFA8]/30">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        Por que quis fumar nesse momento? (contexto)
+                      </label>
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                        opcional
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                      {CIGARETTE_CONTEXTS.map((ctx) => {
+                        const isSelected = cigaretteContext === ctx
+                        return (
+                          <button
+                            key={ctx}
+                            type="button"
+                            onClick={() => setCigaretteContext(ctx)}
+                            className={cn(
+                              'px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-all touch-target truncate border',
+                              isSelected
+                                ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                                : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                            )}
+                          >
+                            {ctx}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {cigaretteContext === 'Outro momento' && (
+                      <input
+                        type="text"
+                        placeholder="Ex.: na varanda, esperando o ônibus..."
+                        value={customCigaretteContext}
+                        onChange={(e) => setCustomCigaretteContext(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9] mt-1"
+                      />
+                    )}
+                  </div>
                 </div>
-              ) : (
+              )}
+
+              {/* CASO 2: SUBSTÂNCIAS QUE USAM QUANTIDADE / GRAMAS (COCAÍNA, MACONHA, MD, LSD, OUTRAS) */}
+              {isDosedSubstance && (
+                <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/50 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-[#4CAF7D]" />
+                      Quantidade e contexto ({selectedSubstance})
+                    </span>
+                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                      100% opcional • Sem julgamento
+                    </span>
+                  </div>
+
+                  {/* Quanto comprou: 1g, 3g ou mais? */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        Quanto comprou? (opcional)
+                      </label>
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                        ex: 1g, 3g ou mais
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {COMMON_BOUGHT_AMOUNTS.map((amt) => {
+                        const isSelected = boughtAmount === amt
+                        return (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setBoughtAmount(amt)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all touch-target',
+                              isSelected
+                                ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                                : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                            )}
+                          >
+                            {amt === 'outro' ? 'Outro valor' : amt}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {boughtAmount === 'outro' && (
+                      <input
+                        type="text"
+                        placeholder="Ex.: 4g, 2 pinos, 1 pacote..."
+                        value={customBoughtAmount}
+                        onChange={(e) => setCustomBoughtAmount(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9] mt-1"
+                      />
+                    )}
+                  </div>
+
+                  {/* Quanto usou? */}
+                  <div className="space-y-1.5 pt-2 border-t border-[#7FBFA8]/30">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        Quanto usou desse total? (opcional)
+                      </label>
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                        consciência sem culpa
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {COMMON_USED_AMOUNTS.map((amt) => {
+                        const isSelected = substanceUsedAmount === amt
+                        return (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setSubstanceUsedAmount(amt)}
+                            className={cn(
+                              'px-3 py-1.5 rounded-xl text-xs font-bold border transition-all touch-target',
+                              isSelected
+                                ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                                : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                            )}
+                          >
+                            {amt === 'outro' ? 'Outra quantidade' : amt}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {substanceUsedAmount === 'outro' && (
+                      <input
+                        type="text"
+                        placeholder="Ex.: 0,25g, metade, sobrou um pouco..."
+                        value={customUsedAmount}
+                        onChange={(e) => setCustomUsedAmount(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9] mt-1"
+                      />
+                    )}
+                  </div>
+
+                  {/* Em quanto tempo usou? (Numa noite? Numa hora?) */}
+                  <div className="space-y-1.5 pt-2 border-t border-[#7FBFA8]/30">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-[#7FBFA8]" />
+                        <span>Usou isso em quanto tempo? (opcional)</span>
+                      </label>
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                        ritmo de uso
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {USAGE_DURATIONS.map((dur) => {
+                        const isSelected = usageDuration === dur
+                        return (
+                          <button
+                            key={dur}
+                            type="button"
+                            onClick={() => setUsageDuration(dur)}
+                            className={cn(
+                              'px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-all touch-target truncate border',
+                              isSelected
+                                ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                                : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                            )}
+                          >
+                            {dur}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Dividiu com alguém? */}
+                  <div className="space-y-1.5 pt-2 border-t border-[#7FBFA8]/30">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-[#7FBFA8]" />
+                        <span>Dividiu com alguém? (opcional)</span>
+                      </label>
+                      <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                        contexto social
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'sim', label: 'Sim, dividi' },
+                        { id: 'nao', label: 'Não' },
+                        { id: 'sozinho', label: 'Estava só' },
+                        { id: 'outro', label: 'Outro' },
+                      ].map((opt) => {
+                        const isSelected = sharedWithOthers === opt.id
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() =>
+                              setSharedWithOthers(opt.id as 'sim' | 'nao' | 'sozinho' | 'outro')
+                            }
+                            className={cn(
+                              'py-2 px-1 rounded-xl text-xs font-bold border transition-all touch-target text-center truncate',
+                              isSelected
+                                ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                                : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CASO 3: ÁLCOOL (DOSES E UNIDADES CLARAS E SIMPLES) */}
+              {isAlcoholSelected && (
+                <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/50 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-[#4CAF7D]" />
+                      Tipo de bebida e doses (Álcool)
+                    </span>
+                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                      sem sugerir dose
+                    </span>
+                  </div>
+
+                  {/* Tipo de bebida */}
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { id: 'cerveja', label: 'Cerveja/Chope' },
+                      { id: 'vinho', label: 'Vinho' },
+                      { id: 'destilado', label: 'Destilado' },
+                      { id: 'outro', label: 'Outro' },
+                    ].map((t) => {
+                      const isSelected = alcoholType === t.id
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() =>
+                            setAlcoholType(t.id as 'cerveja' | 'vinho' | 'destilado' | 'outro')
+                          }
+                          className={cn(
+                            'py-2 px-1 rounded-xl text-xs font-bold border transition-all touch-target text-center truncate',
+                            isSelected
+                              ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                              : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                          )}
+                        >
+                          {t.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Quantidade consumida */}
+                  <div className="space-y-1.5 pt-1">
+                    <label className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      Quantidade aproximada consumida
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {ALCOHOL_UNITS_SUGGESTIONS.map((unit) => {
+                        const isSelected = alcoholUnitChosen === unit
+                        return (
+                          <button
+                            key={unit}
+                            type="button"
+                            onClick={() => setAlcoholUnitChosen(unit)}
+                            className={cn(
+                              'px-2.5 py-2 rounded-xl text-xs font-semibold text-left transition-all touch-target truncate border',
+                              isSelected
+                                ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                                : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                            )}
+                          >
+                            {unit}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Dividiu com alguém? */}
+                  <div className="space-y-1.5 pt-2 border-t border-[#7FBFA8]/30">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-[#7FBFA8]" />
+                        <span>Estava acompanhado(a)? (opcional)</span>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'sim', label: 'Em grupo / amigos' },
+                        { id: 'sozinho', label: 'Sozinho(a)' },
+                        { id: 'outro', label: 'Outro' },
+                      ].map((opt) => {
+                        const isSelected = sharedWithOthers === opt.id
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() =>
+                              setSharedWithOthers(opt.id as 'sim' | 'nao' | 'sozinho' | 'outro')
+                            }
+                            className={cn(
+                              'py-2 px-1 rounded-xl text-xs font-bold border transition-all touch-target text-center truncate',
+                              isSelected
+                                ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                                : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CASO 4: OUTRO HÁBITO (CAFÉ, REMÉDIO, AÇÚCAR) */}
+              {!isTobaccoSelected && !isDosedSubstance && !isAlcoholSelected && (
                 <RecomecaInput
                   label="Quantidade consumida (aproximada)"
-                  placeholder="Ex.: 3 latas, 2 doses, 1 porção..."
+                  placeholder="Ex.: 2 xícaras, 1 porção..."
                   value={amountUsed}
                   onChange={(e) => setAmountUsed(e.target.value)}
                   helperText="Apenas para você ter consciência do seu corpo. Nunca há julgamento."

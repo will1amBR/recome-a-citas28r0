@@ -29,11 +29,13 @@ import {
   Receipt,
   Eye,
   Cigarette,
+  Users,
+  Package,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function Diario() {
-  const { techniqueMetrics, habits } = useRecomecaStore()
+  const { techniqueMetrics, habits, cigaretteLogs, episodeLogs } = useRecomecaStore()
 
   // Converte o Record de dias mockados em array ordenado
   const calendarDaysList = React.useMemo(() => {
@@ -57,6 +59,40 @@ export default function Diario() {
     tobaccoHabit?.previousMonthPacks ?? MOCK_MONTHLY_MIRROR.previousMonthPacksTotal ?? 12
   const packsDifference = previousMonthPacks - monthlyPacks
   const monthlyCigarettes = monthlyPacks * 20
+
+  // Métricas de momentos em que mais fuma (alimentado por logs reais + mock enriquecido)
+  const momentsAnalysis = React.useMemo(() => {
+    const baseMoments = [...(MOCK_MONTHLY_MIRROR.topCigaretteMoments || [])]
+    const countsMap: Record<string, number> = {}
+
+    // inicializa com base
+    baseMoments.forEach((m) => {
+      countsMap[m.context] = (countsMap[m.context] || 0) + m.count
+    })
+
+    // soma logs recentes da store
+    cigaretteLogs.forEach((log) => {
+      countsMap[log.context] = (countsMap[log.context] || 0) + log.quantity
+    })
+
+    const total = Object.values(countsMap).reduce((a, b) => a + b, 0)
+    const sorted = Object.entries(countsMap)
+      .map(([context, count]) => ({
+        context,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+
+    return {
+      top: sorted.slice(0, 5),
+      highlightMoment: sorted[0]?.context || 'Depois do almoço',
+      totalTracked: total,
+    }
+  }, [cigaretteLogs])
+
+  // Último episódio (ou o salvo na store)
+  const latestEpisode = episodeLogs[0] || MOCK_LAST_EPISODE
 
   const getDayStatusColor = (status: DayCalendarStatus['status']) => {
     switch (status) {
@@ -171,6 +207,118 @@ export default function Diario() {
                 {packsDifference > 0
                   ? `🌿 ${packsDifference} maços a menos que o mês passado. Cada cigarro que você não fumou conta.`
                   : '🌿 Cada cigarro que você não fumou conta. O progresso é construído um dia de cada vez.'}
+              </p>
+            </div>
+
+            {/* =========================================================
+                NOVO: EM QUAIS MOMENTOS VOCÊ MAIS FUMA (SEM JULGAMENTO)
+               ========================================================= */}
+            <div className="p-3.5 rounded-2xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                    Padrão de Autoconhecimento
+                  </span>
+                  <h3 className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#7FBFA8]" />
+                    Momentos em que você mais fuma
+                  </h3>
+                </div>
+                <span className="text-[11px] font-semibold text-[#4CAF7D]">sem julgamento</span>
+              </div>
+
+              {/* Destaque acolhedor */}
+              <div className="p-2.5 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/40 text-xs text-[#2F4A3E] dark:text-[#8FCCAE]">
+                <span>
+                  💡 Você costuma fumar mais{' '}
+                  <strong>{momentsAnalysis.highlightMoment.toLowerCase()}</strong>. Saber disso te
+                  ajuda a se planejar com carinho antes da vontade bater.
+                </span>
+              </div>
+
+              {/* Barrinhas por contexto */}
+              <div className="space-y-2 pt-1">
+                {momentsAnalysis.top.map((item) => (
+                  <div key={item.context} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] truncate max-w-[220px]">
+                        {item.context}
+                      </span>
+                      <span className="tabular-nums font-bold text-[#4CAF7D] dark:text-[#8FCCAE]">
+                        {item.percentage}% ({item.count} cig.)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-[#E1E8E2] dark:bg-[#2D3A34] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#7FBFA8] transition-all"
+                        style={{ width: `${Math.min(100, item.percentage)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* =========================================================
+                NOVO: MÉTRICAS DE OUTRAS SUBSTÂNCIAS (DURAÇÃO, DIVISÃO, QUANTIDADE)
+               ========================================================= */}
+            <div className="p-3.5 rounded-2xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                    Outras Substâncias • Ritmo e Contexto
+                  </span>
+                  <h3 className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-[#7FBFA8]" />
+                    Duração típica e contexto social
+                  </h3>
+                </div>
+                <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                  consciência leve
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      Cocaína / estimulantes
+                    </span>
+                    <span className="text-[10px] text-[#4CAF7D] font-bold">1 registro</span>
+                  </div>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    • Compra típica: <strong>1g</strong>
+                  </p>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    • Duração típica: <strong>numa noite</strong>
+                  </p>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1">
+                    <Users className="w-3 h-3 text-[#7FBFA8]" />
+                    <span>Costuma dividir quando usa</span>
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">Álcool</span>
+                    <span className="text-[10px] text-[#4CAF7D] font-bold">2 registros</span>
+                  </div>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    • Tipo preferido: <strong>chope / cerveja</strong>
+                  </p>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    • Duração típica: <strong>3 a 4 horas em saídas</strong>
+                  </p>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1">
+                    <Users className="w-3 h-3 text-[#7FBFA8]" />
+                    <span>Uso predominantemente social</span>
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] italic">
+                Tom acolhedor: entender o tempo de uso e a companhia ajuda você a escolher seus
+                ambientes com calma.
               </p>
             </div>
 
@@ -357,31 +505,77 @@ export default function Diario() {
             <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
               Último Episódio Registrado
             </h2>
-            <span className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">Sem julgamento</span>
+            <Link to="/registrar" className="text-xs font-semibold text-[#4CAF7D] hover:underline">
+              Novo registro +
+            </Link>
           </div>
 
           <RecomecaCard variant="default" padding="lg" className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-                  {MOCK_LAST_EPISODE.date} • {MOCK_LAST_EPISODE.time}
+                  {latestEpisode.date} • {latestEpisode.time}
                 </span>
                 <h3 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                  {MOCK_LAST_EPISODE.substanceName}
+                  {latestEpisode.substanceName}
                 </h3>
               </div>
 
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72] dark:text-[#A0B0A7]">
-                Humor: {MOCK_LAST_EPISODE.mood}
+                Humor: {latestEpisode.mood}
               </span>
             </div>
 
-            <p className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] italic leading-relaxed">
-              &ldquo;{MOCK_LAST_EPISODE.freeText}&rdquo;
-            </p>
+            {latestEpisode.amountDescription && (
+              <div className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] font-semibold">
+                Consumo: {latestEpisode.amountDescription}
+              </div>
+            )}
+
+            {latestEpisode.freeText && (
+              <p className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] italic leading-relaxed">
+                &ldquo;{latestEpisode.freeText}&rdquo;
+              </p>
+            )}
+
+            {/* Detalhes de substância (compra, duração, divisão) */}
+            {latestEpisode.details && (
+              <div className="p-2.5 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/30 grid grid-cols-2 gap-2 text-[11px] text-[#2F4A3E] dark:text-[#8FCCAE]">
+                {latestEpisode.details.boughtAmount && (
+                  <div>
+                    <span className="opacity-75 block">Comprou:</span>
+                    <strong>{latestEpisode.details.boughtAmount}</strong>
+                  </div>
+                )}
+                {latestEpisode.details.usageDuration && (
+                  <div>
+                    <span className="opacity-75 block">Duração:</span>
+                    <strong>{latestEpisode.details.usageDuration}</strong>
+                  </div>
+                )}
+                {latestEpisode.details.sharedWithOthers && (
+                  <div>
+                    <span className="opacity-75 block">Dividiu:</span>
+                    <strong>
+                      {latestEpisode.details.sharedWithOthers === 'sim'
+                        ? 'Sim, dividiu'
+                        : latestEpisode.details.sharedWithOthers === 'sozinho'
+                          ? 'Estava só'
+                          : latestEpisode.details.sharedWithOthers}
+                    </strong>
+                  </div>
+                )}
+                {latestEpisode.details.alcoholUnits && (
+                  <div>
+                    <span className="opacity-75 block">Doses / unidades:</span>
+                    <strong>{latestEpisode.details.alcoholUnits}</strong>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Recibo acoplado */}
-            {MOCK_LAST_EPISODE.receipt && (
+            {latestEpisode.receipt && (
               <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] space-y-1.5 text-xs">
                 <div className="flex items-center justify-between font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
                   <span className="flex items-center gap-1.5">
@@ -389,19 +583,19 @@ export default function Diario() {
                     Recibo registrado
                   </span>
                   <span className="tabular-nums">
-                    R$ {MOCK_LAST_EPISODE.receipt.spentAmount.toFixed(2)}
+                    R$ {latestEpisode.receipt.spentAmount.toFixed(2)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
-                  <span>Permanência: {MOCK_LAST_EPISODE.receipt.durationMinutes} min</span>
-                  <span>Itens: {MOCK_LAST_EPISODE.receipt.itemsConsumed.join(', ')}</span>
+                  <span>Permanência: {latestEpisode.receipt.durationMinutes} min</span>
+                  <span>Itens: {latestEpisode.receipt.itemsConsumed.join(', ')}</span>
                 </div>
               </div>
             )}
 
             <div className="pt-1 border-t border-[#E1E8E2] dark:border-[#2D3A34] flex items-center justify-between text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
-              <span>Gatilho: {MOCK_LAST_EPISODE.triggers.join(', ')}</span>
+              <span>Gatilho: {latestEpisode.triggers.join(', ') || 'Não especificado'}</span>
               <span className="text-[#7FBFA8] dark:text-[#8FCCAE] font-semibold">
                 Registrado com honestidade
               </span>

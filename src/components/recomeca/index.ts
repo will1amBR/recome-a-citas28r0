@@ -26,4 +26,7 @@ export type { ProgressBarProps } from './ProgressBar'
 export { ConfirmationModal } from './ConfirmationModal'
 export type { ConfirmationModalProps } from './ConfirmationModal'
 
+export { CigaretteQuickLogModal } from './CigaretteQuickLogModal'
+export type { CigaretteQuickLogModalProps } from './CigaretteQuickLogModal'
+
 export { ScreenHeader, LegalNoticeFooter } from './ScreenHeader'

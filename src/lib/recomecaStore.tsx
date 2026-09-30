@@ -4,15 +4,22 @@ import {
   GoodActionRecord,
   CravingTechniqueMetric,
   SupportContact,
+  CigaretteLogItem,
+  EpisodeLog,
+  SubstanceDetails,
   MOCK_TRACKED_HABITS,
   MOCK_MONTHLY_MIRROR,
   MOCK_CONTACT,
+  MOCK_TODAY_CIGARETTES,
+  MOCK_LAST_EPISODE,
 } from '@/lib/mockData'
 
 const STORAGE_KEY_ACTIONS = 'recomeca_good_actions_v1'
 const STORAGE_KEY_HABITS = 'recomeca_habits_v1'
 const STORAGE_KEY_TECHNIQUES = 'recomeca_technique_metrics_v1'
 const STORAGE_KEY_CONTACT = 'recomeca_contact_v1'
+const STORAGE_KEY_CIGARETTE_LOGS = 'recomeca_cigarette_logs_v1'
+const STORAGE_KEY_EPISODES = 'recomeca_episodes_v1'
 
 const INITIAL_GOOD_ACTIONS: GoodActionRecord[] = [
   {
@@ -38,6 +45,8 @@ export interface RecomecaStore {
   techniqueMetrics: CravingTechniqueMetric[]
   lastToastMessage: string | null
   contact: SupportContact
+  cigaretteLogs: CigaretteLogItem[]
+  episodeLogs: EpisodeLog[]
   updateContact: (contact: Partial<SupportContact>) => void
   addGoodAction: (action: Omit<GoodActionRecord, 'id' | 'timestamp'>) => void
   recordTechniqueCompletion: (
@@ -48,8 +57,20 @@ export interface RecomecaStore {
   recordActivityCompletion: (activityName: string, outcome: 'passou' | 'usou') => void
   updateCigarettes: (habitId: string, delta: number) => void
   setCigarettesDirect: (habitId: string, count: number) => void
+  logCigaretteWithDetails: (params: {
+    habitId?: string
+    timestamp?: string
+    quantity?: number
+    context: string
+    note?: string
+  }) => void
+  removeLastCigaretteLog: (habitId?: string) => void
   recordCheckinDone: () => void
-  recordHonestEpisode: (substanceName: string, cigarettesAmount?: number) => void
+  recordHonestEpisode: (
+    substanceName: string,
+    cigarettesAmount?: number,
+    fullEpisode?: Partial<EpisodeLog>,
+  ) => void
   clearToast: () => void
 }
 
@@ -103,6 +124,28 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
     return MOCK_CONTACT
   })
 
+  // Logs individuais de cada cigarro registrado (horário + contexto)
+  const [cigaretteLogs, setCigaretteLogs] = React.useState<CigaretteLogItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CIGARETTE_LOGS)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // fallback
+    }
+    return MOCK_TODAY_CIGARETTES
+  })
+
+  // Histórico de episódios completos registrados
+  const [episodeLogs, setEpisodeLogs] = React.useState<EpisodeLog[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_EPISODES)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      // fallback
+    }
+    return [MOCK_LAST_EPISODE]
+  })
+
   const [lastToastMessage, setLastToastMessage] = React.useState<string | null>(null)
 
   // Salvar no localStorage
@@ -137,6 +180,22 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       // ignore
     }
   }, [contact])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CIGARETTE_LOGS, JSON.stringify(cigaretteLogs))
+    } catch {
+      // ignore
+    }
+  }, [cigaretteLogs])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_EPISODES, JSON.stringify(episodeLogs))
+    } catch {
+      // ignore
+    }
+  }, [episodeLogs])
 
   const updateContact = React.useCallback((patch: Partial<SupportContact>) => {
     setContact((prev) => ({ ...prev, ...patch }))
@@ -268,13 +327,16 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
   const updateCigarettes = React.useCallback((habitId: string, delta: number) => {
     setHabits((prev) =>
       prev.map((h) => {
-        if (
+        const isMatch =
           h.id === habitId ||
-          (h.substanceKey && ['tabaco', 'cigarro'].includes(h.substanceKey))
-        ) {
-          const currentToday = h.cigarettesToday ?? 0
+          (h.substanceKey && ['tabaco', 'cigarro'].includes(h.substanceKey)) ||
+          h.name.toLowerCase().includes('cigarro') ||
+          h.name.toLowerCase().includes('tabaco')
+
+        if (isMatch) {
+          const currentToday = h.cigarettesToday ?? h.dailyCurrent ?? 0
           const nextToday = Math.max(0, currentToday + delta)
-          const currentWeek = h.cigarettesWeek ?? 0
+          const currentWeek = h.cigarettesWeek ?? currentToday
           const nextWeek = Math.max(0, currentWeek + delta)
 
           return {
@@ -288,6 +350,66 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       }),
     )
   }, [])
+
+  // Registrar cigarro com horário e contexto detalhado (rápido e opcional)
+  const logCigaretteWithDetails = React.useCallback(
+    ({
+      habitId,
+      timestamp,
+      quantity = 1,
+      context,
+      note,
+    }: {
+      habitId?: string
+      timestamp?: string
+      quantity?: number
+      context: string
+      note?: string
+    }) => {
+      const now = new Date()
+      const timeStr =
+        timestamp ||
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      const dateStr = now.toISOString().slice(0, 10)
+
+      const newItem: CigaretteLogItem = {
+        id: `cig-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        timestamp: timeStr,
+        date: dateStr,
+        quantity: Math.max(1, quantity),
+        context: context || 'Outro momento',
+        note,
+      }
+
+      setCigaretteLogs((prev) => [newItem, ...prev])
+
+      // Atualiza contadores do hábito
+      const targetHabitId = habitId || 'habit-cigarro'
+      updateCigarettes(targetHabitId, newItem.quantity)
+
+      // Adiciona ação acolhedora sem culpa
+      addGoodAction({
+        title: `Cigarro registrado (${timeStr} • ${newItem.context})`,
+        type: 'honestidade',
+        message: 'Consciência sem culpa. Você está no controle do seu caminho.',
+      })
+    },
+    [updateCigarettes, addGoodAction],
+  )
+
+  // Remover último cigarro (se tocou em -1)
+  const removeLastCigaretteLog = React.useCallback(
+    (habitId?: string) => {
+      setCigaretteLogs((prev) => {
+        if (prev.length === 0) return prev
+        const [first, ...rest] = prev
+        const targetHabitId = habitId || 'habit-cigarro'
+        updateCigarettes(targetHabitId, -first.quantity)
+        return rest
+      })
+    },
+    [updateCigarettes],
+  )
 
   const setCigarettesDirect = React.useCallback((habitId: string, count: number) => {
     setHabits((prev) =>
@@ -317,7 +439,13 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
   }, [addGoodAction])
 
   const recordHonestEpisode = React.useCallback(
-    (substanceName: string, cigarettesAmount?: number) => {
+    (substanceName: string, cigarettesAmount?: number, fullEpisode?: Partial<EpisodeLog>) => {
+      const now = new Date()
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
+        now.getMinutes(),
+      ).padStart(2, '0')}`
+      const dateStr = now.toISOString().slice(0, 10)
+
       addGoodAction({
         title: `Registro honesto: ${substanceName}`,
         type: 'honestidade',
@@ -344,6 +472,27 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
           }),
         )
       }
+
+      // Salva no histórico de episódios
+      const newEp: EpisodeLog = {
+        id: `ep-${Date.now()}`,
+        date: fullEpisode?.date || dateStr,
+        time: fullEpisode?.time || timeStr,
+        substanceName,
+        amountDescription:
+          fullEpisode?.amountDescription ||
+          (cigarettesAmount ? `${cigarettesAmount} cigarros` : 'Consumo registrado'),
+        mood: fullEpisode?.mood || 'neutro',
+        triggers: fullEpisode?.triggers || [],
+        freeText: fullEpisode?.freeText || '',
+        whatHappenedBefore: fullEpisode?.whatHappenedBefore,
+        whatHappenedAfter: fullEpisode?.whatHappenedAfter || 'Registrado com calma.',
+        cravingTime: fullEpisode?.cravingTime,
+        receipt: fullEpisode?.receipt,
+        details: fullEpisode?.details,
+      }
+
+      setEpisodeLogs((prev) => [newEp, ...prev])
     },
     [addGoodAction],
   )
@@ -356,12 +505,16 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       techniqueMetrics,
       lastToastMessage,
       contact,
+      cigaretteLogs,
+      episodeLogs,
       updateContact,
       addGoodAction,
       recordTechniqueCompletion,
       recordActivityCompletion,
       updateCigarettes,
       setCigarettesDirect,
+      logCigaretteWithDetails,
+      removeLastCigaretteLog,
       recordCheckinDone,
       recordHonestEpisode,
       clearToast,
@@ -373,12 +526,16 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       techniqueMetrics,
       lastToastMessage,
       contact,
+      cigaretteLogs,
+      episodeLogs,
       updateContact,
       addGoodAction,
       recordTechniqueCompletion,
       recordActivityCompletion,
       updateCigarettes,
       setCigarettesDirect,
+      logCigaretteWithDetails,
+      removeLastCigaretteLog,
       recordCheckinDone,
       recordHonestEpisode,
       clearToast,

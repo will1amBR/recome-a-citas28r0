@@ -76,6 +76,8 @@ export interface EpisodeLog {
   whatHappenedAfter: string
   cravingTime?: string
   receipt?: EpisodeReceipt
+  // Campos detalhados de consumo
+  details?: SubstanceDetails
 }
 
 export interface DayCalendarStatus {
@@ -105,6 +107,29 @@ export interface GoodActionRecord {
   message: string // ex: "Feito. Você escolheu você."
 }
 
+export interface CigaretteLogItem {
+  id: string
+  timestamp: string // "HH:MM"
+  date: string // "YYYY-MM-DD"
+  quantity: number // default 1
+  context: string // ex: "Depois do almoço", "Antes do jantar", etc.
+  note?: string
+}
+
+export interface SubstanceDetails {
+  // Quanto comprou: ex.: "1g", "3g", "5g", "1 pino", "meio maço", etc.
+  boughtAmount?: string
+  // Quanto usou: ex.: "0,5g", "1g", "3 latas", "2 doses"
+  usedAmount?: string
+  // Em quanto tempo usou: ex.: "em uma hora", "numa noite", "ao longo do dia", etc.
+  usageDuration?: string
+  // Dividiu com alguém?
+  sharedWithOthers?: 'sim' | 'nao' | 'sozinho' | 'outro'
+  // Detalhes de álcool
+  alcoholType?: 'cerveja' | 'vinho' | 'destilado' | 'outro'
+  alcoholUnits?: string // ex: "3 latas (350ml)", "2 taças", "1 dose (50ml)"
+}
+
 export interface MonthlyMirror {
   monthName: string
   year: number
@@ -121,6 +146,15 @@ export interface MonthlyMirror {
   monthlyPacksTotal?: number
   previousMonthPacksTotal?: number
   cigarettesComparisonMessage?: string
+  // Métricas enriquecidas
+  topCigaretteMoments?: { context: string; count: number; percentage: number }[]
+  substanceUsageStats?: {
+    substanceName: string
+    totalEntries: number
+    sharedCount: number
+    typicalDuration: string
+    typicalAmountBought?: string
+  }[]
 }
 
 export interface PrescribedMedication {
@@ -334,7 +368,79 @@ export const MOCK_MONTHLY_MIRROR: MonthlyMirror = {
   previousMonthPacksTotal: 12,
   cigarettesComparisonMessage:
     '3 maços a menos que o mês passado. Cada cigarro que você não fumou conta.',
+  topCigaretteMoments: [
+    { context: 'Depois do almoço', count: 48, percentage: 27 },
+    { context: 'Com café', count: 36, percentage: 20 },
+    { context: 'Antes do jantar', count: 28, percentage: 16 },
+    { context: 'Estresse / pausa do trabalho', count: 24, percentage: 13 },
+    { context: 'Depois de comer', count: 22, percentage: 12 },
+    { context: 'Outros momentos', count: 22, percentage: 12 },
+  ],
+  substanceUsageStats: [
+    {
+      substanceName: 'Álcool',
+      totalEntries: 2,
+      sharedCount: 2,
+      typicalDuration: 'numa noite (3 a 4h)',
+      typicalAmountBought: 'chopes no bar',
+    },
+    {
+      substanceName: 'Cocaína',
+      totalEntries: 1,
+      sharedCount: 1,
+      typicalDuration: 'numa noite',
+      typicalAmountBought: '1g',
+    },
+  ],
 }
+
+// Contextos do dia a dia para o registro rápido de cigarro
+export const CIGARETTE_CONTEXTS = [
+  'Depois do almoço',
+  'Antes do jantar',
+  'Depois de comer',
+  'Com café',
+  'Com bebida',
+  'Estresse',
+  'Tédio',
+  'Saindo de casa',
+  'Conversa / social',
+  'Acordando',
+  'Antes de dormir',
+  'Outro momento',
+] as const
+
+// Mock inicial de cigarros registrados hoje (para somar os 4 de hoje)
+export const MOCK_TODAY_CIGARETTES: CigaretteLogItem[] = [
+  {
+    id: 'cig-1',
+    date: new Date().toISOString().slice(0, 10),
+    timestamp: '08:20',
+    quantity: 1,
+    context: 'Com café',
+  },
+  {
+    id: 'cig-2',
+    date: new Date().toISOString().slice(0, 10),
+    timestamp: '13:15',
+    quantity: 1,
+    context: 'Depois do almoço',
+  },
+  {
+    id: 'cig-3',
+    date: new Date().toISOString().slice(0, 10),
+    timestamp: '15:40',
+    quantity: 1,
+    context: 'Estresse',
+  },
+  {
+    id: 'cig-4',
+    date: new Date().toISOString().slice(0, 10),
+    timestamp: '18:50',
+    quantity: 1,
+    context: 'Antes do jantar',
+  },
+]
 
 export const MOCK_CALENDAR_DAYS: Record<string, DayCalendarStatus> = {
   '2025-05-01': {
