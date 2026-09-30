@@ -39,6 +39,7 @@ import {
   CalendarDays,
   Smile,
   Zap,
+  Volume2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -1043,13 +1044,21 @@ export default function Hoje() {
                           ))}
                         </div>
 
-                        <div className="pt-1 flex items-center justify-between">
+                        <div className="pt-1 flex flex-wrap items-center justify-between gap-2">
                           <Link
                             to="/trocar"
                             className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] hover:underline flex items-center gap-1"
                           >
                             <span>Ver todas as 6 técnicas guiadas</span>
                             <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+
+                          <Link
+                            to="/trocar"
+                            className="text-[11px] font-semibold text-[#4CAF7D] dark:text-[#8FCCAE] hover:underline flex items-center gap-1"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                            <span>Biblioteca de sons (ruído marrom, chuva...)</span>
                           </Link>
                         </div>
                       </div>

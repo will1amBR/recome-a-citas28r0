@@ -30,3 +30,14 @@ export { CigaretteQuickLogModal } from './CigaretteQuickLogModal'
 export type { CigaretteQuickLogModalProps } from './CigaretteQuickLogModal'
 
 export { ScreenHeader, LegalNoticeFooter } from './ScreenHeader'
+
+export {
+  SoundLibraryModal,
+  AmbientSoundPlayerBar,
+  getGentleSoundSuggestion,
+} from './SoundLibraryModal'
+export type {
+  SoundLibraryModalProps,
+  AmbientSoundPlayerBarProps,
+  SituationContext,
+} from './SoundLibraryModal'

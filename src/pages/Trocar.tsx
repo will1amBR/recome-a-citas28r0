@@ -5,6 +5,7 @@ import {
   RecomecaCard,
   ScreenHeader,
   LegalNoticeFooter,
+  SoundLibraryModal,
 } from '@/components/recomeca'
 import {
   CRAVING_PROTOCOLS,
@@ -14,7 +15,7 @@ import {
   SwapActivityItem,
   MOCK_LAST_EPISODE,
 } from '@/lib/mockData'
-import { ambientAudio } from '@/lib/ambientSound'
+import { ambientAudio, SOUND_DEFINITIONS } from '@/lib/ambientSound'
 import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
   Play,
@@ -86,8 +87,18 @@ export default function Trocar() {
   const [breathCount, setBreathCount] = React.useState<number>(4)
   const [isBreathActive, setIsBreathActive] = React.useState<boolean>(true)
 
-  // Som ambiente de fundo relaxante
-  const [isMusicPlaying, setIsMusicPlaying] = React.useState<boolean>(false)
+  // Som ambiente de fundo relaxante e modal da biblioteca de sons
+  const [isMusicPlaying, setIsMusicPlaying] = React.useState<boolean>(ambientAudio.getIsPlaying())
+  const [isSoundModalOpen, setIsSoundModalOpen] = React.useState<boolean>(false)
+  const [currentSoundId, setCurrentSoundId] = React.useState(ambientAudio.getCurrentSoundId())
+
+  React.useEffect(() => {
+    const unsub = ambientAudio.subscribe(() => {
+      setIsMusicPlaying(ambientAudio.getIsPlaying())
+      setCurrentSoundId(ambientAudio.getCurrentSoundId())
+    })
+    return unsub
+  }, [])
 
   // Técnica selecionada no Kit de Técnicas
   const [selectedProtocolId, setSelectedProtocolId] = React.useState<string>('navegar-onda')
@@ -149,6 +160,10 @@ export default function Trocar() {
   const handleToggleMusic = () => {
     const nextState = ambientAudio.toggle()
     setIsMusicPlaying(nextState)
+  }
+
+  const handleStopMusic = () => {
+    ambientAudio.pause()
   }
 
   // Timer principal de 15 min
@@ -999,7 +1014,7 @@ export default function Trocar() {
         </section>
 
         {/* =============================================================
-            4. RESPIRAÇÃO GUIADA COM MÚSICA DE FUNDO RELAXANTE (Surfar a onda)
+            4. RESPIRAÇÃO GUIADA COM BIBLIOTECA DE SONS SINTETIZADOS
            ============================================================= */}
         <section className="space-y-2" aria-label="Respiração guiada de acolhimento">
           <RecomecaCard
@@ -1007,39 +1022,83 @@ export default function Trocar() {
             padding="lg"
             className="space-y-4 text-center relative overflow-hidden"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
                 <Wind className="w-4 h-4 text-[#7FBFA8]" />
                 <span>Navegar na onda: Respiração (4s / 6s)</span>
               </div>
 
-              {/* Botão de música relaxante */}
+              {/* Controles de som integrados: tocar/parar + abrir biblioteca */}
+              <div className="flex items-center gap-1.5 ml-auto">
+                {isMusicPlaying && (
+                  <button
+                    type="button"
+                    onClick={handleStopMusic}
+                    aria-label="Parar som ambiente agora"
+                    className="px-2.5 py-1.5 rounded-full text-xs font-bold bg-[#2F4A3E] dark:bg-[#E8EFE9] text-white dark:text-[#1C2420] transition-all touch-target"
+                  >
+                    ■ Parar som
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleToggleMusic}
+                  aria-label={
+                    isMusicPlaying
+                      ? 'Desligar som ambiente calmante'
+                      : 'Ligar som ambiente calmante'
+                  }
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-target',
+                    isMusicPlaying
+                      ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8] text-[#2F4A3E] dark:text-[#8FCCAE] shadow-sm animate-pulse'
+                      : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72] dark:text-[#A0B0A7] hover:border-[#7FBFA8]',
+                  )}
+                >
+                  {isMusicPlaying ? (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5 text-[#4CAF7D]" />
+                      <span className="font-bold">
+                        {SOUND_DEFINITIONS[currentSoundId]?.name || 'Som ativo'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5 text-[#6A7A72]" />
+                      <span>Ouvir som ambiente</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSoundModalOpen(true)}
+                  aria-label="Abrir biblioteca de sons para trocar ruídos e frequências"
+                  className="px-2.5 py-1.5 rounded-full text-xs font-semibold bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8] hover:text-white transition-colors touch-target"
+                >
+                  7 sons
+                </button>
+              </div>
+            </div>
+
+            {/* Convite gentil automático para o momento de respiração */}
+            <div className="p-2.5 rounded-xl bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] flex flex-wrap items-center justify-between gap-2 text-left">
+              <p className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                <Sparkle className="w-3.5 h-3.5 text-[#7FBFA8] shrink-0" />
+                <span>
+                  Que tal ouvir o <strong>oceano & baleias</strong> ou <strong>chuva</strong> para
+                  acompanhar sua respiração?
+                </span>
+              </p>
               <button
                 type="button"
-                onClick={handleToggleMusic}
-                aria-label={
-                  isMusicPlaying
-                    ? 'Desligar música de fundo relaxante'
-                    : 'Ligar música de fundo relaxante'
-                }
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-target',
-                  isMusicPlaying
-                    ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8] text-[#2F4A3E] dark:text-[#8FCCAE] shadow-sm animate-pulse'
-                    : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72] dark:text-[#A0B0A7] hover:border-[#7FBFA8]',
-                )}
+                onClick={() => {
+                  ambientAudio.play('ocean')
+                }}
+                className="text-xs font-bold text-[#4CAF7D] dark:text-[#8FCCAE] underline hover:opacity-85 shrink-0"
               >
-                {isMusicPlaying ? (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-[#4CAF7D]" />
-                    <span>Música tocando</span>
-                  </>
-                ) : (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5 text-[#6A7A72]" />
-                    <span>Música relaxante</span>
-                  </>
-                )}
+                Tocar oceano agora
               </button>
             </div>
 
@@ -1071,23 +1130,24 @@ export default function Trocar() {
               </p>
             </div>
 
-            <div className="flex items-center justify-center gap-4 pt-1">
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => setIsBreathActive((a) => !a)}
-                className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline"
+                className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline touch-target"
               >
                 {isBreathActive ? 'Pausar animação de respiração' : 'Retomar respiração guiada'}
               </button>
 
-              <span className="text-xs text-[#6A7A72]/40">•</span>
+              <span className="text-xs text-[#6A7A72]/40 hidden sm:inline">•</span>
 
               <button
                 type="button"
-                onClick={handleToggleMusic}
-                className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline"
+                onClick={() => setIsSoundModalOpen(true)}
+                className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline flex items-center gap-1 touch-target"
               >
-                {isMusicPlaying ? 'Pausar música ambiente' : 'Ouvir som relaxante'}
+                <Music className="w-3.5 h-3.5" />
+                <span>Escolher outro som (marrom, lofi, frequências...)</span>
               </button>
             </div>
           </RecomecaCard>
@@ -1319,6 +1379,13 @@ export default function Trocar() {
 
         <LegalNoticeFooter />
       </div>
+
+      {/* Modal da Biblioteca de Sons (7 sons sintetizados) */}
+      <SoundLibraryModal
+        open={isSoundModalOpen}
+        onOpenChange={setIsSoundModalOpen}
+        context="respiracao"
+      />
     </div>
   )
 }

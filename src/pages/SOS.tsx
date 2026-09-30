@@ -5,9 +5,10 @@ import {
   RecomecaCard,
   ScreenHeader,
   LegalNoticeFooter,
+  SoundLibraryModal,
 } from '@/components/recomeca'
 import { CRAVING_PROTOCOLS } from '@/lib/mockData'
-import { ambientAudio } from '@/lib/ambientSound'
+import { ambientAudio, SOUND_DEFINITIONS } from '@/lib/ambientSound'
 import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
   PhoneCall,
@@ -43,7 +44,17 @@ export default function SOS() {
   const [breathCount, setBreathCount] = React.useState<number>(4)
 
   // Música ambiente calmante para o momento crítico do SOS
-  const [isMusicPlaying, setIsMusicPlaying] = React.useState<boolean>(false)
+  const [isMusicPlaying, setIsMusicPlaying] = React.useState<boolean>(ambientAudio.getIsPlaying())
+  const [isSoundModalOpen, setIsSoundModalOpen] = React.useState<boolean>(false)
+  const [currentSoundId, setCurrentSoundId] = React.useState(ambientAudio.getCurrentSoundId())
+
+  React.useEffect(() => {
+    const unsub = ambientAudio.subscribe(() => {
+      setIsMusicPlaying(ambientAudio.getIsPlaying())
+      setCurrentSoundId(ambientAudio.getCurrentSoundId())
+    })
+    return unsub
+  }, [])
 
   // Limpa o áudio ao desmontar
   React.useEffect(() => {
@@ -55,6 +66,10 @@ export default function SOS() {
   const handleToggleMusic = () => {
     const nextState = ambientAudio.toggle()
     setIsMusicPlaying(nextState)
+  }
+
+  const handleStopMusic = () => {
+    ambientAudio.pause()
   }
 
   // Tenta obter geolocalização de forma não bloqueante ao abrir a tela
@@ -275,40 +290,81 @@ export default function SOS() {
         </section>
 
         {/* =============================================================
-            2. RESPIRAÇÃO GUIADA DE EMERGÊNCIA COM MÚSICA CALMANTE
+            2. RESPIRAÇÃO GUIADA DE EMERGÊNCIA COM MÚSICA CALMANTE E SONS
            ============================================================= */}
         <section className="space-y-2">
           <RecomecaCard variant="highlight" padding="lg" className="text-center space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
                 <Wind className="w-4 h-4 text-[#7FBFA8]" />
                 <span>Respire com calma agora</span>
               </div>
 
+              <div className="flex items-center gap-1.5 ml-auto">
+                {isMusicPlaying && (
+                  <button
+                    type="button"
+                    onClick={handleStopMusic}
+                    aria-label="Parar som ambiente agora"
+                    className="px-2.5 py-1.5 rounded-full text-xs font-bold bg-[#2F4A3E] dark:bg-[#E8EFE9] text-white dark:text-[#1C2420] transition-all touch-target"
+                  >
+                    ■ Parar
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleToggleMusic}
+                  aria-label={
+                    isMusicPlaying
+                      ? 'Desligar som ambiente calmante'
+                      : 'Ligar som ambiente calmante'
+                  }
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-target',
+                    isMusicPlaying
+                      ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8] text-[#2F4A3E] dark:text-[#8FCCAE] shadow-sm animate-pulse'
+                      : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72] dark:text-[#A0B0A7] hover:border-[#7FBFA8]',
+                  )}
+                >
+                  {isMusicPlaying ? (
+                    <>
+                      <Volume2 className="w-3.5 h-3.5 text-[#4CAF7D]" />
+                      <span className="font-bold">
+                        {SOUND_DEFINITIONS[currentSoundId]?.name || 'Som ativo'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5 text-[#6A7A72]" />
+                      <span>Som calmante</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSoundModalOpen(true)}
+                  aria-label="Abrir catálogo de 7 sons ambiente"
+                  className="px-2.5 py-1.5 rounded-full text-xs font-semibold bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8] hover:text-white transition-colors touch-target"
+                >
+                  7 sons
+                </button>
+              </div>
+            </div>
+
+            {/* Sugestão automática gentil para momentos de crise/ansiedade do SOS */}
+            <div className="p-2.5 rounded-xl bg-white/70 dark:bg-[#1C2420]/70 border border-[#7FBFA8]/30 flex flex-wrap items-center justify-between gap-2 text-left">
+              <span className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] leading-snug">
+                Que tal ouvir o <strong>ruído marrom</strong>? Ajuda a desacelerar o coração e
+                pensamentos acelerados.
+              </span>
               <button
                 type="button"
-                onClick={handleToggleMusic}
-                aria-label={
-                  isMusicPlaying ? 'Desligar som ambiente calmante' : 'Ligar som ambiente calmante'
-                }
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-target',
-                  isMusicPlaying
-                    ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8] text-[#2F4A3E] dark:text-[#8FCCAE] shadow-sm animate-pulse'
-                    : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72] dark:text-[#A0B0A7] hover:border-[#7FBFA8]',
-                )}
+                onClick={() => ambientAudio.play('brown')}
+                className="text-xs font-bold text-[#4CAF7D] dark:text-[#8FCCAE] underline hover:opacity-85 shrink-0"
               >
-                {isMusicPlaying ? (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-[#4CAF7D]" />
-                    <span>Música calma ativa</span>
-                  </>
-                ) : (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5 text-[#6A7A72]" />
-                    <span>Música relaxante</span>
-                  </>
-                )}
+                Tocar ruído marrom
               </button>
             </div>
 
@@ -338,13 +394,11 @@ export default function SOS() {
 
               <button
                 type="button"
-                onClick={handleToggleMusic}
-                className="mt-2 text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline flex items-center gap-1"
+                onClick={() => setIsSoundModalOpen(true)}
+                className="mt-2 text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline flex items-center gap-1 touch-target"
               >
                 <Music className="w-3.5 h-3.5" />
-                <span>
-                  {isMusicPlaying ? 'Pausar música de fundo' : 'Tocar som de fundo suave'}
-                </span>
+                <span>Escolher som (ruído marrom, oceano, chuva, frequências...)</span>
               </button>
             </div>
 
@@ -515,6 +569,14 @@ export default function SOS() {
 
         <LegalNoticeFooter />
       </div>
+
+      {/* Modal da Biblioteca de Sons no SOS */}
+      <SoundLibraryModal
+        open={isSoundModalOpen}
+        onOpenChange={setIsSoundModalOpen}
+        context="fissura-ansiedade"
+        isSosMode
+      />
     </div>
   )
 }
