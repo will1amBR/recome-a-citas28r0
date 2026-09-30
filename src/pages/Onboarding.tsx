@@ -435,8 +435,8 @@ export default function Onboarding() {
                 </div>
 
                 <p className="text-sm text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed">
-                  Mesmo em hábitos como açúcar, cafeína ou cigarro, o processo é mais suave quando
-                  respeitamos o ritmo do nosso corpo.
+                  Mesmo em hábitos como tabaco, cigarro, cafeína ou açúcar, o processo é mais suave
+                  quando respeitamos o ritmo do nosso corpo.
                 </p>
 
                 <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">

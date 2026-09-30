@@ -14,6 +14,7 @@ import {
   MOCK_TRACKED_HABITS,
   DAILY_INSPIRATION_PHRASES,
   TrackedHabit,
+  CravingEpisode,
 } from '@/lib/mockData'
 import {
   CalendarDays,
@@ -28,6 +29,10 @@ import {
   Coffee,
   Plus,
   Minus,
+  Clock,
+  Trash2,
+  HelpCircle,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -40,12 +45,47 @@ export default function Hoje() {
   // Mensagem diária acolhedora sorteada
   const [phraseIndex, setPhraseIndex] = React.useState<number>(0)
 
-  // Estado do Check-in diário (3 toques)
+  // Estado do Check-in diário (perguntas ricas, humanas e 100% opcionais)
   const [checkinMood, setCheckinMood] = React.useState<string>('bem')
   const [usedToday, setUsedToday] = React.useState<'nao' | 'sim' | 'reduzido'>('nao')
   const [usedAmountInput, setUsedAmountInput] = React.useState<string>('')
   const [feltCraving, setFeltCraving] = React.useState<'nao' | 'sim'>('nao')
+  const [cravingsList, setCravingsList] = React.useState<CravingEpisode[]>([
+    {
+      id: 'crav-1',
+      time: '16:30',
+      dayOrPeriod: 'Hoje à tarde',
+      whatBefore: 'Reunião tensa e cansaço',
+      whatAfter: 'Tomei água, respirei fundo por 5 min e a onda baixou',
+      intensity: 'moderada',
+    },
+  ])
+  const [generalNotes, setGeneralNotes] = React.useState<string>('')
   const [checkinSaved, setCheckinSaved] = React.useState<boolean>(false)
+
+  const handleAddCraving = () => {
+    const now = new Date()
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    setCravingsList((prev) => [
+      ...prev,
+      {
+        id: `crav-${Date.now()}`,
+        time: currentTime,
+        dayOrPeriod: 'Hoje',
+        whatBefore: '',
+        whatAfter: '',
+        intensity: 'leve',
+      },
+    ])
+  }
+
+  const handleUpdateCraving = (id: string, field: keyof CravingEpisode, value: string) => {
+    setCravingsList((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)))
+  }
+
+  const handleRemoveCraving = (id: string) => {
+    setCravingsList((prev) => prev.filter((c) => c.id !== id))
+  }
 
   // Controle de consumo do hábito de redução (ex: café)
   const reductionHabit = habits.find((h) => h.goalType === 'reduzir')
@@ -270,7 +310,7 @@ export default function Hoje() {
         )}
 
         {/* =============================================================
-            4. CHECK-IN DIÁRIO EM 3 TOQUES
+            4. CHECK-IN DIÁRIO (PERGUNTAS RICAS, HUMANAS E 100% OPCIONAIS)
            ============================================================= */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
@@ -278,8 +318,8 @@ export default function Hoje() {
               Check-in de Hoje
             </h2>
             <span className="text-xs text-[#4CAF7D] dark:text-[#5DBF8C] font-semibold flex items-center gap-1">
-              <CalendarDays className="w-3.5 h-3.5" />
-              Rápido e discreto
+              <Sparkles className="w-3.5 h-3.5" />
+              Tudo opcional • Sem cobrança
             </span>
           </div>
 
@@ -294,34 +334,55 @@ export default function Hoje() {
                     Check-in de hoje guardado com carinho
                   </h3>
                   <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] max-w-xs mx-auto">
-                    Obrigado por tirar esse minutinho para olhar para você. Esse cuidado diário faz
-                    toda a diferença.
+                    Obrigado por tirar esse minutinho para olhar para você. Esse cuidado diário gera
+                    métricas reais sobre seus horários e gatilhos.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setCheckinSaved(false)}
-                  className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] underline pt-1"
-                >
-                  Editar respostas
-                </button>
+                <div className="pt-2 flex justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCheckinSaved(false)}
+                    className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] underline"
+                  >
+                    Editar respostas
+                  </button>
+                  <Link
+                    to="/diario"
+                    className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] underline"
+                  >
+                    Ver métricas no Diário
+                  </Link>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSaveCheckin} className="space-y-5">
-                {/* Toque 1: Como você está? */}
+                <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30 flex items-start gap-2.5 text-xs text-[#2F4A3E] dark:text-[#8FCCAE]">
+                  <HelpCircle className="w-4 h-4 text-[#7FBFA8] shrink-0 mt-0.5" />
+                  <span>
+                    Responda só o que quiser. Nenhuma pergunta é obrigatória — salvar sempre
+                    funciona, no seu ritmo.
+                  </span>
+                </div>
+
+                {/* Pergunta 1: Humor */}
                 <div className="space-y-1.5">
                   <MoodSelector
                     value={checkinMood}
                     onChange={(m) => setCheckinMood(m)}
-                    label="1. Como você está se sentindo hoje?"
+                    label="1. Como você está se sentindo hoje? (opcional)"
                   />
                 </div>
 
-                {/* Toque 2: Usou hoje? */}
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                    2. Usou alguma substância hoje?
-                  </label>
+                {/* Pergunta 2: Consumo */}
+                <div className="space-y-2 text-left pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      2. Como foi o consumo hoje? (opcional)
+                    </label>
+                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                      Sem julgamento
+                    </span>
+                  </div>
                   <div className="grid grid-cols-3 gap-1.5 min-[380px]:gap-2">
                     <button
                       type="button"
@@ -357,15 +418,15 @@ export default function Hoje() {
                           : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
                       )}
                     >
-                      Episódio
+                      Houve episódio
                     </button>
                   </div>
 
                   {usedToday === 'sim' && (
-                    <div className="pt-1 animate-fade-in">
+                    <div className="pt-1.5 animate-fade-in space-y-2">
                       <input
                         type="text"
-                        placeholder="Quanto usou? (opcional, sem julgamento)"
+                        placeholder="Quanto usou aproximadamente? (opcional)"
                         value={usedAmountInput}
                         onChange={(e) => setUsedAmountInput(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9] focus-visible:outline-2 focus-visible:outline-[#7FBFA8]"
@@ -374,11 +435,17 @@ export default function Hoje() {
                   )}
                 </div>
 
-                {/* Toque 3: Teve vontade? */}
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                    3. Bateu vontade ou fissura em algum momento?
-                  </label>
+                {/* Pergunta 3: FISSURA RICA COM HORÁRIO, ANTES E DEPOIS */}
+                <div className="space-y-3 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      3. Bateu fissura ou vontade forte hoje? (opcional)
+                    </label>
+                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                      Mapeia horários
+                    </span>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -390,7 +457,7 @@ export default function Hoje() {
                           : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
                       )}
                     >
-                      Não senti
+                      Não senti fissura
                     </button>
                     <button
                       type="button"
@@ -402,9 +469,149 @@ export default function Hoje() {
                           : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
                       )}
                     >
-                      Sim, bateu vontade
+                      Sim, bateu fissura
                     </button>
                   </div>
+
+                  {/* Se bateu fissura: detalhamento rico e 100% opcional */}
+                  {feltCraving === 'sim' && (
+                    <div className="space-y-3 pt-2 animate-fade-in">
+                      <div className="p-3 rounded-xl bg-[#E8F3EC]/70 dark:bg-[#2A3831]/70 border border-[#7FBFA8]/30 text-xs text-[#2F4A3E] dark:text-[#8FCCAE] space-y-1">
+                        <p className="font-semibold flex items-center gap-1.5">
+                          <Activity className="w-3.5 h-3.5 text-[#4CAF7D]" />
+                          Entender horários e o que aconteceu antes e depois
+                        </p>
+                        <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                          Saber o horário e o contexto nos ajuda a prever momentos críticos e a
+                          construir métricas reais para a sua rotina.
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {cravingsList.map((craving, idx) => (
+                          <div
+                            key={craving.id}
+                            className="p-3.5 rounded-2xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] space-y-3 relative"
+                          >
+                            <div className="flex items-center justify-between border-b border-[#E1E8E2] dark:border-[#2D3A34] pb-2">
+                              <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-[#7FBFA8]" />
+                                Episódio de fissura #{idx + 1}
+                              </span>
+                              {cravingsList.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCraving(craving.id)}
+                                  className="text-xs text-[#D96C68] hover:underline flex items-center gap-1"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  remover
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Horário e Momento do dia */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1">
+                                  <span>Qual horário?</span>
+                                  <span className="text-[10px] font-normal">(opcional)</span>
+                                </label>
+                                <input
+                                  type="time"
+                                  value={craving.time || ''}
+                                  onChange={(e) =>
+                                    handleUpdateCraving(craving.id, 'time', e.target.value)
+                                  }
+                                  className="w-full px-2.5 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1">
+                                  <span>Que dia / período?</span>
+                                  <span className="text-[10px] font-normal">(opcional)</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="Ex.: Hoje tarde, Ontem à noite"
+                                  value={craving.dayOrPeriod || ''}
+                                  onChange={(e) =>
+                                    handleUpdateCraving(craving.id, 'dayOrPeriod', e.target.value)
+                                  }
+                                  className="w-full px-2.5 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                                />
+                              </div>
+                            </div>
+
+                            {/* O que estava acontecendo ANTES */}
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center justify-between">
+                                <span>O que estava acontecendo antes?</span>
+                                <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] font-normal">
+                                  opcional
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Ex.: Briga em casa, pressão no trabalho, vi alguém usando..."
+                                value={craving.whatBefore || ''}
+                                onChange={(e) =>
+                                  handleUpdateCraving(craving.id, 'whatBefore', e.target.value)
+                                }
+                                className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                              />
+                            </div>
+
+                            {/* E depois, o que aconteceu */}
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center justify-between">
+                                <span>E depois, o que aconteceu?</span>
+                                <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] font-normal">
+                                  opcional
+                                </span>
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Ex.: Respirei fundo, tomei água gelada, a onda passou em 10 min..."
+                                value={craving.whatAfter || ''}
+                                onChange={(e) =>
+                                  handleUpdateCraving(craving.id, 'whatAfter', e.target.value)
+                                }
+                                className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                              />
+                            </div>
+                          </div>
+                        ))}
+
+                        <button
+                          type="button"
+                          onClick={handleAddCraving}
+                          className="w-full py-2 px-3 rounded-xl border border-dashed border-[#7FBFA8] text-xs font-semibold text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#E8F3EC] dark:hover:bg-[#2A3831] flex items-center justify-center gap-1.5 transition-colors touch-target"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Adicionar outra fissura no dia</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Pergunta 4: Reflexão ou notas livres */}
+                <div className="space-y-1.5 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                  <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center justify-between">
+                    <span>4. Alguma reflexão ou nota para você mesmo?</span>
+                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] font-normal">
+                      opcional
+                    </span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={generalNotes}
+                    onChange={(e) => setGeneralNotes(e.target.value)}
+                    placeholder="Escreva como você se sente hoje se tiver vontade..."
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                  />
                 </div>
 
                 <RecomecaButton variant="primary" size="md" fullWidth type="submit">

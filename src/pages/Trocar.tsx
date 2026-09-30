@@ -7,6 +7,7 @@ import {
   LegalNoticeFooter,
 } from '@/components/recomeca'
 import { HABIT_SWAP_SUGGESTIONS, MOCK_LAST_EPISODE } from '@/lib/mockData'
+import { ambientAudio } from '@/lib/ambientSound'
 import {
   Play,
   Pause,
@@ -21,6 +22,9 @@ import {
   History,
   CheckCircle2,
   AlertCircle,
+  Volume2,
+  VolumeX,
+  Music,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +48,21 @@ export default function Trocar() {
   const [breathPhase, setBreathPhase] = React.useState<'inspire' | 'expire'>('inspire')
   const [breathCount, setBreathCount] = React.useState<number>(4)
   const [isBreathActive, setIsBreathActive] = React.useState<boolean>(true)
+
+  // Música ambiente de fundo relaxante (respeita interação do usuário, sem autoplay)
+  const [isMusicPlaying, setIsMusicPlaying] = React.useState<boolean>(false)
+
+  // Garante que o áudio seja pausado quando o usuário sair da tela
+  React.useEffect(() => {
+    return () => {
+      ambientAudio.pause()
+    }
+  }, [])
+
+  const handleToggleMusic = () => {
+    const nextState = ambientAudio.toggle()
+    setIsMusicPlaying(nextState)
+  }
 
   // Timer principal de 15 min
   React.useEffect(() => {
@@ -192,13 +211,61 @@ export default function Trocar() {
         </section>
 
         {/* =============================================================
-            2. RESPIRAÇÃO GUIADA (4s dentro, 6s fora)
+            2. RESPIRAÇÃO GUIADA COM MÚSICA DE FUNDO RELAXANTE
            ============================================================= */}
         <section className="space-y-2">
-          <RecomecaCard variant="default" padding="lg" className="space-y-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-              <Wind className="w-4 h-4 text-[#7FBFA8]" />
-              <span>Respiração Calmante (4s / 6s)</span>
+          <RecomecaCard
+            variant="default"
+            padding="lg"
+            className="space-y-4 text-center relative overflow-hidden"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                <Wind className="w-4 h-4 text-[#7FBFA8]" />
+                <span>Respiração Calmante (4s / 6s)</span>
+              </div>
+
+              {/* Botão de música relaxante */}
+              <button
+                type="button"
+                onClick={handleToggleMusic}
+                aria-label={
+                  isMusicPlaying
+                    ? 'Desligar música de fundo relaxante'
+                    : 'Ligar música de fundo relaxante'
+                }
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-target',
+                  isMusicPlaying
+                    ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8] text-[#2F4A3E] dark:text-[#8FCCAE] shadow-sm animate-pulse'
+                    : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72] dark:text-[#A0B0A7] hover:border-[#7FBFA8]',
+                )}
+              >
+                {isMusicPlaying ? (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-[#4CAF7D]" />
+                    <span>Música tocando</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-[#6A7A72]" />
+                    <span>Música relaxante</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Aviso gentil sobre o som relaxante */}
+            <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/20 flex items-center justify-between text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+              <span className="flex items-center gap-1.5">
+                <Music className="w-3.5 h-3.5 text-[#7FBFA8]" />
+                {isMusicPlaying
+                  ? 'Som ambiente suave de ondas e acordes calmantes ativo.'
+                  : 'Toque em "Música relaxante" para ouvir um som ambiente calmante.'}
+              </span>
+              <span className="text-[10px] font-semibold text-[#7FBFA8]">
+                {isMusicPlaying ? 'Volume suave' : 'Sem autoplay'}
+              </span>
             </div>
 
             {/* Animação circular que expande e contrai */}
@@ -208,7 +275,7 @@ export default function Trocar() {
                   'w-32 h-32 rounded-full flex items-center justify-center transition-transform duration-1000 ease-in-out',
                   'bg-gradient-to-br from-[#7FBFA8]/20 to-[#4CAF7D]/20 border-2 border-[#7FBFA8]/50 shadow-sm',
                   breathPhase === 'inspire'
-                    ? 'scale-125 bg-[#7FBFA8]/30'
+                    ? 'scale-125 bg-[#7FBFA8]/30 shadow-[0_0_30px_rgba(127,191,168,0.3)]'
                     : 'scale-90 bg-[#7FBFA8]/10',
                 )}
               >
@@ -229,13 +296,25 @@ export default function Trocar() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsBreathActive((a) => !a)}
-              className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline"
-            >
-              {isBreathActive ? 'Pausar animação de respiração' : 'Retomar respiração guiada'}
-            </button>
+            <div className="flex items-center justify-center gap-4 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsBreathActive((a) => !a)}
+                className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline"
+              >
+                {isBreathActive ? 'Pausar animação de respiração' : 'Retomar respiração guiada'}
+              </button>
+
+              <span className="text-xs text-[#6A7A72]/40">•</span>
+
+              <button
+                type="button"
+                onClick={handleToggleMusic}
+                className="text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline"
+              >
+                {isMusicPlaying ? 'Pausar música ambiente' : 'Ouvir som relaxante'}
+              </button>
+            </div>
           </RecomecaCard>
         </section>
 

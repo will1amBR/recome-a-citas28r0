@@ -7,6 +7,7 @@ import {
   LegalNoticeFooter,
 } from '@/components/recomeca'
 import { MOCK_CONTACT } from '@/lib/mockData'
+import { ambientAudio } from '@/lib/ambientSound'
 import {
   PhoneCall,
   MessageCircle,
@@ -18,6 +19,9 @@ import {
   Clock,
   ArrowLeft,
   Info,
+  Volume2,
+  VolumeX,
+  Music,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +35,21 @@ export default function SOS() {
   // Respiração Guiada de emergência (ciclo 4s / 6s)
   const [breathPhase, setBreathPhase] = React.useState<'inspire' | 'expire'>('inspire')
   const [breathCount, setBreathCount] = React.useState<number>(4)
+
+  // Música ambiente calmante para o momento crítico do SOS
+  const [isMusicPlaying, setIsMusicPlaying] = React.useState<boolean>(false)
+
+  // Limpa o áudio ao desmontar
+  React.useEffect(() => {
+    return () => {
+      ambientAudio.pause()
+    }
+  }, [])
+
+  const handleToggleMusic = () => {
+    const nextState = ambientAudio.toggle()
+    setIsMusicPlaying(nextState)
+  }
 
   // Tenta obter geolocalização de forma não bloqueante ao abrir a tela
   React.useEffect(() => {
@@ -222,13 +241,41 @@ export default function SOS() {
         </section>
 
         {/* =============================================================
-            2. RESPIRAÇÃO GUIADA DE EMERGÊNCIA (4s / 6s)
+            2. RESPIRAÇÃO GUIADA DE EMERGÊNCIA COM MÚSICA CALMANTE
            ============================================================= */}
         <section className="space-y-2">
           <RecomecaCard variant="highlight" padding="lg" className="text-center space-y-3">
-            <div className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-              <Wind className="w-4 h-4 text-[#7FBFA8]" />
-              <span>Respire com calma agora</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                <Wind className="w-4 h-4 text-[#7FBFA8]" />
+                <span>Respire com calma agora</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleMusic}
+                aria-label={
+                  isMusicPlaying ? 'Desligar som ambiente calmante' : 'Ligar som ambiente calmante'
+                }
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-target',
+                  isMusicPlaying
+                    ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8] text-[#2F4A3E] dark:text-[#8FCCAE] shadow-sm animate-pulse'
+                    : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72] dark:text-[#A0B0A7] hover:border-[#7FBFA8]',
+                )}
+              >
+                {isMusicPlaying ? (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-[#4CAF7D]" />
+                    <span>Música calma ativa</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-[#6A7A72]" />
+                    <span>Música relaxante</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="py-2 flex flex-col items-center justify-center">
@@ -236,7 +283,9 @@ export default function SOS() {
                 className={cn(
                   'w-28 h-28 rounded-full flex items-center justify-center transition-transform duration-1000 ease-in-out',
                   'bg-white/80 dark:bg-[#1C2420]/80 border-2 border-[#7FBFA8]',
-                  breathPhase === 'inspire' ? 'scale-115 bg-[#7FBFA8]/20' : 'scale-90',
+                  breathPhase === 'inspire'
+                    ? 'scale-115 bg-[#7FBFA8]/20 shadow-[0_0_24px_rgba(127,191,168,0.4)]'
+                    : 'scale-90',
                 )}
               >
                 <div className="text-center">
@@ -252,6 +301,17 @@ export default function SOS() {
               <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] mt-3 max-w-xs leading-relaxed">
                 Concentre-se no ar entrando e saindo. Você está no controle deste segundo.
               </p>
+
+              <button
+                type="button"
+                onClick={handleToggleMusic}
+                className="mt-2 text-xs font-semibold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline flex items-center gap-1"
+              >
+                <Music className="w-3.5 h-3.5" />
+                <span>
+                  {isMusicPlaying ? 'Pausar música de fundo' : 'Tocar som de fundo suave'}
+                </span>
+              </button>
             </div>
           </RecomecaCard>
         </section>

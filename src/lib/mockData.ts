@@ -28,6 +28,15 @@ export interface SupportContact {
   hasConsent: boolean
 }
 
+export interface CravingEpisode {
+  id: string
+  time?: string
+  dayOrPeriod?: string // ex: "Hoje de manhã", "Ontem à noite", "Terça-feira"
+  whatBefore?: string // o que estava acontecendo antes
+  whatAfter?: string // e depois, o que aconteceu
+  intensity?: 'leve' | 'moderada' | 'forte'
+}
+
 export interface DailyCheckin {
   id: string
   date: string
@@ -35,6 +44,7 @@ export interface DailyCheckin {
   usedToday: boolean
   amountUsed?: string
   feltCraving: boolean
+  cravings?: CravingEpisode[]
   notes?: string
 }
 
@@ -56,7 +66,9 @@ export interface EpisodeLog {
   mood: string
   triggers: string[]
   freeText: string
+  whatHappenedBefore?: string
   whatHappenedAfter: string
+  cravingTime?: string
   receipt?: EpisodeReceipt
 }
 
@@ -341,7 +353,8 @@ export const MEDICATION_SCREENING_QUESTIONS: ScreenQuestion[] = [
 
 export const ONBOARDING_SUBSTANCES = [
   { id: 'alcool', label: 'Álcool', category: 'substancia', highRisk: true },
-  { id: 'cigarro', label: 'Cigarro / Nicotina', category: 'substancia', highRisk: false },
+  { id: 'tabaco', label: 'Tabaco', category: 'substancia', highRisk: false },
+  { id: 'cigarro', label: 'Cigarro', category: 'substancia', highRisk: false },
   { id: 'acucar', label: 'Açúcar', category: 'habito', highRisk: false },
   { id: 'energetico', label: 'Energético', category: 'habito', highRisk: false },
   { id: 'cafe', label: 'Café', category: 'habito', highRisk: false },

@@ -40,7 +40,7 @@ const DEFAULT_TRIGGERS = [
 export default function Registrar() {
   const navigate = useNavigate()
 
-  // Campos básicos
+  // Campos ricos, humanos e 100% opcionais
   const [mood, setMood] = React.useState<string>('dificil')
   const [selectedSubstance, setSelectedSubstance] = React.useState<string>(
     MOCK_TRACKED_HABITS[0].name,
@@ -48,7 +48,15 @@ export default function Registrar() {
   const [amountUsed, setAmountUsed] = React.useState<string>('')
   const [selectedTriggers, setSelectedTriggers] = React.useState<string[]>(['estresse'])
   const [freeText, setFreeText] = React.useState<string>('')
+  const [whatHappenedBefore, setWhatHappenedBefore] = React.useState<string>('')
   const [consequencesText, setConsequencesText] = React.useState<string>('')
+
+  // Fissura associada ao registro: bateu fissura? qual horário?
+  const [hadCravingBefore, setHadCravingBefore] = React.useState<'sim' | 'nao' | 'indiferente'>(
+    'sim',
+  )
+  const [cravingTime, setCravingTime] = React.useState<string>('19:30')
+  const [cravingDuration, setCravingDuration] = React.useState<string>('cerca de 20 min')
 
   // Bloco do recibo: foto OU manual
   const [receiptMode, setReceiptMode] = React.useState<'manual' | 'foto'>('manual')
@@ -138,12 +146,15 @@ export default function Registrar() {
         <section className="space-y-2">
           <RecomecaCard variant="default" padding="lg" className="space-y-4">
             <div className="space-y-1">
-              <label
-                htmlFor="escrita-livre"
-                className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]"
-              >
-                O que aconteceu? Como você se sentiu?
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="escrita-livre"
+                  className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]"
+                >
+                  O que aconteceu? Como você se sentiu?
+                </label>
+                <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">opcional</span>
+              </div>
               <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
                 Escreva à vontade, sem julgamentos. Nada do que você disser será criticado.
               </p>
@@ -162,6 +173,124 @@ export default function Registrar() {
                 'focus-visible:outline-2 focus-visible:outline-[#7FBFA8] placeholder:text-[#6A7A72]/60',
               )}
             />
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            1.1 O QUE ACONTECEU ANTES? (FISSURA, HORÁRIO E CONTEXTO)
+           ============================================================= */}
+        <section className="space-y-2">
+          <RecomecaCard variant="default" padding="lg" className="space-y-4">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-[#7FBFA8]" />
+                  O que aconteceu antes do episódio?
+                </span>
+                <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                  opcional • gera métricas
+                </span>
+              </div>
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                Registrar o antes nos ajuda a entender quando a onda começa a se formar.
+              </p>
+            </div>
+
+            {/* Bateu fissura antes? */}
+            <div className="space-y-2 pt-1">
+              <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                Bateu fissura ou vontade forte antes de usar? (opcional)
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setHadCravingBefore('sim')}
+                  className={cn(
+                    'py-2 px-2 rounded-xl text-xs font-bold border transition-all touch-target text-center',
+                    hadCravingBefore === 'sim'
+                      ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                      : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
+                  )}
+                >
+                  Sim, bateu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHadCravingBefore('nao')}
+                  className={cn(
+                    'py-2 px-2 rounded-xl text-xs font-bold border transition-all touch-target text-center',
+                    hadCravingBefore === 'nao'
+                      ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                      : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
+                  )}
+                >
+                  Não percebi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHadCravingBefore('indiferente')}
+                  className={cn(
+                    'py-2 px-2 rounded-xl text-xs font-bold border transition-all touch-target text-center',
+                    hadCravingBefore === 'indiferente'
+                      ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                      : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
+                  )}
+                >
+                  Foi no impulso
+                </button>
+              </div>
+            </div>
+
+            {/* Horário da fissura / começo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center justify-between">
+                  <span>Qual horário a vontade começou?</span>
+                  <span className="text-[10px] font-normal">opcional</span>
+                </label>
+                <input
+                  type="time"
+                  value={cravingTime}
+                  onChange={(e) => setCravingTime(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center justify-between">
+                  <span>Quanto tempo a fissura durou?</span>
+                  <span className="text-[10px] font-normal">opcional</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex.: uns 15 minutos, a tarde inteira..."
+                  value={cravingDuration}
+                  onChange={(e) => setCravingDuration(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                />
+              </div>
+            </div>
+
+            {/* O que estava acontecendo antes */}
+            <div className="space-y-1 pt-1">
+              <label
+                htmlFor="aconteceu-antes"
+                className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center justify-between"
+              >
+                <span>O que estava acontecendo antes? (Gatilhos, ambiente, conversas)</span>
+                <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] font-normal">
+                  opcional
+                </span>
+              </label>
+              <textarea
+                id="aconteceu-antes"
+                rows={2}
+                value={whatHappenedBefore}
+                onChange={(e) => setWhatHappenedBefore(e.target.value)}
+                placeholder="Ex.: Saí de uma reunião exausto, passei perto do bar que costumava frequentar, ouvi aquela música..."
+                className="w-full p-3 rounded-xl text-xs leading-relaxed bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+              />
+            </div>
           </RecomecaCard>
         </section>
 
@@ -411,19 +540,23 @@ export default function Registrar() {
         </section>
 
         {/* =============================================================
-            4. CAMPO: O QUE ACONTECEU DEPOIS? (CONSEQUÊNCIAS)
+            4. CAMPO: E DEPOIS, O QUE ACONTECEU? (CONSEQUÊNCIAS E APRENDIZADO)
            ============================================================= */}
         <section className="space-y-2">
           <RecomecaCard variant="default" padding="lg" className="space-y-3">
             <div className="space-y-1">
-              <label
-                htmlFor="consequencias"
-                className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]"
-              >
-                O que aconteceu depois?
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="consequencias"
+                  className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]"
+                >
+                  E depois, o que aconteceu? (Consequências e reflexão)
+                </label>
+                <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">opcional</span>
+              </div>
               <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
-                Sensações do dia seguinte, brigas, cansaço, atrasos ou apenas a reflexão que ficou.
+                Sensações do dia seguinte, cansaço, sono, brigas ou apenas a reflexão que ficou para
+                nos ajudar a criar métricas conscientes.
               </p>
             </div>
 
@@ -432,7 +565,7 @@ export default function Registrar() {
               rows={3}
               value={consequencesText}
               onChange={(e) => setConsequencesText(e.target.value)}
-              placeholder="Ex.: Acordei com dor de cabeça e gastei mais do que podia. Não valeu a pena o mal-estar."
+              placeholder="Ex.: Acordei com dor de cabeça e gastei mais do que podia. Aprendi que preciso me afastar logo nos primeiros 10 minutos."
               className={cn(
                 'w-full p-3.5 rounded-2xl text-sm leading-relaxed',
                 'bg-[#FDFAF5] dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9]',
