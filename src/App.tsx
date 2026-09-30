@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { RecomecaProvider } from '@/lib/recomecaStore'
 import Index from './pages/Index'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
@@ -20,24 +21,26 @@ import Perfil from './pages/Perfil'
 
 const App = () => (
   <BrowserRouter>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/hoje" element={<Hoje />} />
-          <Route path="/registrar" element={<Registrar />} />
-          <Route path="/trocar" element={<Trocar />} />
-          <Route path="/diario" element={<Diario />} />
-          <Route path="/sos" element={<SOS />} />
-          <Route path="/apoio" element={<Apoio />} />
-          <Route path="/perfil" element={<Perfil />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
+    <RecomecaProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/hoje" element={<Hoje />} />
+            <Route path="/registrar" element={<Registrar />} />
+            <Route path="/trocar" element={<Trocar />} />
+            <Route path="/diario" element={<Diario />} />
+            <Route path="/sos" element={<SOS />} />
+            <Route path="/apoio" element={<Apoio />} />
+            <Route path="/perfil" element={<Perfil />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </RecomecaProvider>
   </BrowserRouter>
 )
 

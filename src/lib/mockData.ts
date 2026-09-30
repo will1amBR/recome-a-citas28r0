@@ -8,16 +8,22 @@ export interface TrackedHabit {
   id: string
   name: string
   category: 'substancia' | 'bebida-estimulante' | 'remedio'
+  substanceKey?: 'alcool' | 'tabaco' | 'cigarro' | 'cafe' | 'remedio' | string
   goalType: 'parar' | 'reduzir'
   currentStreakDays: number
   bestStreakDays: number
   cleanDaysThisMonth: number
   milestoneGoalDays: number
-  dailyLimit?: number // ex: 2 xícaras ou 1 unidade para quem está reduzindo
+  dailyLimit?: number // ex: limite diário (cigarros, xícaras)
   dailyCurrent?: number
   unit?: string
   startDate: string
   highRiskAbstinence?: boolean
+  // Marcador diário específico para tabaco/cigarro
+  cigarettesToday?: number
+  cigarettesWeek?: number
+  previousMonthPacks?: number
+  thisMonthPacks?: number
 }
 
 export interface SupportContact {
@@ -91,6 +97,14 @@ export interface CravingTechniqueMetric {
   percentagePassed: number
 }
 
+export interface GoodActionRecord {
+  id: string
+  title: string
+  timestamp: string // HH:MM ou ISO
+  type: 'tecnica' | 'atividade' | 'checkin' | 'honestidade' | 'meta-mantida'
+  message: string // ex: "Feito. Você escolheu você."
+}
+
 export interface MonthlyMirror {
   monthName: string
   year: number
@@ -102,6 +116,11 @@ export interface MonthlyMirror {
   recordedConsequences: { label: string; count: number }[]
   cravingTechniquesEffectiveness: CravingTechniqueMetric[]
   gentleComparisonMessage: string
+  // Dados de tabaco/cigarro no mês
+  monthlyCigarettesTotal?: number
+  monthlyPacksTotal?: number
+  previousMonthPacksTotal?: number
+  cigarettesComparisonMessage?: string
 }
 
 export interface PrescribedMedication {
@@ -154,6 +173,7 @@ export const MOCK_TRACKED_HABITS: TrackedHabit[] = [
     id: 'habit-1',
     name: 'Álcool',
     category: 'substancia',
+    substanceKey: 'alcool',
     goalType: 'parar',
     currentStreakDays: 19,
     bestStreakDays: 34,
@@ -163,9 +183,30 @@ export const MOCK_TRACKED_HABITS: TrackedHabit[] = [
     highRiskAbstinence: true,
   },
   {
+    id: 'habit-cigarro',
+    name: 'Cigarro',
+    category: 'substancia',
+    substanceKey: 'cigarro',
+    goalType: 'reduzir',
+    currentStreakDays: 5,
+    bestStreakDays: 12,
+    cleanDaysThisMonth: 19,
+    milestoneGoalDays: 15,
+    dailyLimit: 6, // Meta diária de até 6 cigarros
+    dailyCurrent: 4, // Hoje fumou 4 cigarros
+    unit: 'cigarros',
+    cigarettesToday: 4,
+    cigarettesWeek: 26,
+    previousMonthPacks: 14,
+    thisMonthPacks: 9,
+    startDate: '2025-04-18',
+    highRiskAbstinence: false,
+  },
+  {
     id: 'habit-2',
     name: 'Café e Energético',
     category: 'bebida-estimulante',
+    substanceKey: 'cafe',
     goalType: 'reduzir',
     currentStreakDays: 8,
     bestStreakDays: 14,
@@ -288,6 +329,11 @@ export const MOCK_MONTHLY_MIRROR: MonthlyMirror = {
   ],
   gentleComparisonMessage:
     'R$ 45,50 a menos que no mês anterior. Cada dia conta e seu progresso é real.',
+  monthlyCigarettesTotal: 180,
+  monthlyPacksTotal: 9,
+  previousMonthPacksTotal: 12,
+  cigarettesComparisonMessage:
+    '3 maços a menos que o mês passado. Cada cigarro que você não fumou conta.',
 }
 
 export const MOCK_CALENDAR_DAYS: Record<string, DayCalendarStatus> = {

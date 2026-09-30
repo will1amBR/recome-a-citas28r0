@@ -15,6 +15,7 @@ import {
   MOCK_LAST_EPISODE,
 } from '@/lib/mockData'
 import { ambientAudio } from '@/lib/ambientSound'
+import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
   Play,
   Pause,
@@ -34,16 +35,16 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  Layers,
   ArrowRight,
   ShieldCheck,
   Film,
   Zap,
   HelpCircle,
+  Clock,
+  Compass,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// Mapeamento de ícones dinâmicos
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Footprints,
   Droplets,
@@ -59,7 +60,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export default function Trocar() {
-  // Timer de 15 minutos (900 segundos)
+  const { recordTechniqueCompletion, recordActivityCompletion } = useRecomecaStore()
+
+  // 15 minutes timer (900 seconds)
   const TOTAL_SECONDS = 15 * 60
   const [secondsLeft, setSecondsLeft] = React.useState<number>(TOTAL_SECONDS)
   const [isTimerRunning, setIsTimerRunning] = React.useState<boolean>(false)
@@ -75,10 +78,46 @@ export default function Trocar() {
   // Técnica selecionada no Kit de Técnicas
   const [selectedProtocolId, setSelectedProtocolId] = React.useState<string>('navegar-onda')
 
+  // Passos concluídos da técnica ativa
+  const [completedSteps, setCompletedSteps] = React.useState<Record<string, number[]>>({
+    'navegar-onda': [1],
+  })
+
   // Checagem HALT interativa (Fome, Raiva, Solitude, Cansaço)
   const [haltAnswers, setHaltAnswers] = React.useState<Record<string, boolean>>({})
 
-  // Categoria de tempo das atividades ('2min' | '10min' | '30min')
+  // Estado da técnica 5-4-3-2-1
+  const [groundingInputs, setGroundingInputs] = React.useState({
+    see: 'A caneca na mesa, o tom da parede',
+    feel: 'Pés firmes no chão, camiseta nos ombros',
+    hear: 'Barulho da rua ao longe',
+    smellTaste: 'Gole de água fresca',
+  })
+
+  // Estado da técnica Dar o play no filme até o fim
+  const [movieCompletedFinal, setMovieCompletedFinal] = React.useState<'calmo' | 'pesado' | null>(
+    'calmo',
+  )
+
+  // Estado da Ação Oposta
+  const [oppositeActionsChecked, setOppositeActionsChecked] = React.useState<
+    Record<number, boolean>
+  >({
+    1: true,
+  })
+
+  // Registro de conclusão da técnica guiada
+  const [techniqueOutcomeState, setTechniqueOutcomeState] = React.useState<{
+    protocolId: string
+    status: 'passou' | 'usou' | null
+    recorded: boolean
+  }>({
+    protocolId: '',
+    status: null,
+    recorded: false,
+  })
+
+  // Categoria de tempo das atividades
   const [selectedTimeCategory, setSelectedTimeCategory] =
     React.useState<ActivityTimeCategory>('2min')
 
@@ -148,7 +187,6 @@ export default function Trocar() {
 
   const timerProgressPercent = ((TOTAL_SECONDS - secondsLeft) / TOTAL_SECONDS) * 100
 
-  // Atividades filtradas por categoria de tempo
   const filteredActivities = React.useMemo(() => {
     return SWAP_ACTIVITIES_BY_TIME.filter((a) => a.category === selectedTimeCategory)
   }, [selectedTimeCategory])
@@ -162,11 +200,41 @@ export default function Trocar() {
     setSavedOutcome(null)
   }
 
+  const handleConfirmActivityOutcome = (outcome: 'passou' | 'usou') => {
+    if (!completedActivity) return
+    setSavedOutcome(outcome)
+    recordActivityCompletion(completedActivity.title, outcome)
+  }
+
+  const toggleStep = (stepNumber: number) => {
+    setCompletedSteps((prev) => {
+      const current = prev[selectedProtocol.id] || []
+      const next = current.includes(stepNumber)
+        ? current.filter((s) => s !== stepNumber)
+        : [...current, stepNumber]
+      return { ...prev, [selectedProtocol.id]: next }
+    })
+  }
+
+  const handleFinishTechnique = (outcome: 'passou' | 'usou') => {
+    recordTechniqueCompletion(selectedProtocol.id, selectedProtocol.title, outcome)
+    setTechniqueOutcomeState({
+      protocolId: selectedProtocol.id,
+      status: outcome,
+      recorded: true,
+    })
+  }
+
+  const currentTechniqueStepsDone = completedSteps[selectedProtocol.id] || []
+  const allStepsCompleted = selectedProtocol.steps.every((s) =>
+    currentTechniqueStepsDone.includes(s.number),
+  )
+
   return (
     <div className="w-full flex-1 flex flex-col font-sans selection:bg-[#7FBFA8]/30">
       <ScreenHeader
-        title="Troca de Hábito e Fissura"
-        subtitle="A vontade é como uma onda. Escolha uma técnica ou outra atividade para o seu tempo."
+        title="Métodos de Fissura & Troca"
+        subtitle="Cada técnica é uma ferramenta interativa. Diga como a onda terminou e alimente seu Espelho do Mês."
         backHref="/hoje"
       />
 
@@ -180,30 +248,31 @@ export default function Trocar() {
           </div>
           <div className="space-y-0.5">
             <p className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-              Escolha uma técnica para agora
+              Ferramentas práticas guiadas passo a passo
             </p>
             <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-              Todas funcionam e são baseadas em evidências. A melhor é a que você conseguir fazer
-              agora, com calma e sem cobrança.
+              Marque os passos à medida que fizer. Ao concluir, marque &ldquo;terminei esta
+              técnica&rdquo; para registrar uma boa ação por você e gerar métricas de alívio no
+              Diário.
             </p>
           </div>
         </div>
 
         {/* =============================================================
-            2. KIT DE TÉCNICAS PARA A FISSURA (TCC, DBT, PREVENÇÃO DE RECAÍDA)
+            2. KIT DE TÉCNICAS PARA A FISSURA COMO FERRAMENTAS PRÁTICAS
            ============================================================= */}
         <section className="space-y-3" aria-label="Kit de técnicas terapêuticas para a fissura">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-                Kit de Técnicas para a Fissura
+                Ferramentas Práticas de Fissura
               </h2>
               <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
-                6 protocolos terapêuticos rápidos em passos gentis
+                6 métodos terapêuticos com passos guiados e conclusão registrável
               </p>
             </div>
             <span className="text-[11px] font-semibold text-[#4CAF7D] dark:text-[#5DBF8C] px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831]">
-              Base clínica
+              Interativo
             </span>
           </div>
 
@@ -211,22 +280,29 @@ export default function Trocar() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {CRAVING_PROTOCOLS.map((protocol) => {
               const isSelected = protocol.id === selectedProtocolId
+              const isDone = completedSteps[protocol.id]?.length === protocol.steps.length
               return (
                 <button
                   key={protocol.id}
                   type="button"
-                  onClick={() => setSelectedProtocolId(protocol.id)}
+                  onClick={() => {
+                    setSelectedProtocolId(protocol.id)
+                    setTechniqueOutcomeState({ protocolId: '', status: null, recorded: false })
+                  }}
                   className={cn(
-                    'p-3 rounded-2xl text-left border transition-all touch-target flex flex-col justify-between min-h-[96px]',
+                    'p-3 rounded-2xl text-left border transition-all touch-target flex flex-col justify-between min-h-[98px]',
                     isSelected
                       ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8] shadow-sm ring-1 ring-[#7FBFA8]'
                       : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8]/60',
                   )}
                 >
                   <div className="space-y-1">
-                    <span className="text-[10px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] block leading-tight">
-                      {protocol.timeLabel}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] block leading-tight">
+                        {protocol.timeLabel}
+                      </span>
+                      {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-[#4CAF7D]" />}
+                    </div>
                     <h3 className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] leading-snug line-clamp-2">
                       {protocol.title}
                     </h3>
@@ -246,7 +322,7 @@ export default function Trocar() {
             })}
           </div>
 
-          {/* Card Detalhado do Protocolo Selecionado */}
+          {/* Card Detalhado do Protocolo Selecionado como FERRAMENTA INTERATIVA */}
           <RecomecaCard
             variant="default"
             padding="lg"
@@ -262,7 +338,7 @@ export default function Trocar() {
                 </h3>
               </div>
               <span className="text-xs font-medium text-[#4CAF7D] dark:text-[#8FCCAE] bg-[#E8F3EC] dark:bg-[#2A3831] px-2.5 py-1 rounded-full">
-                {selectedProtocol.subtitle}
+                {currentTechniqueStepsDone.length} de {selectedProtocol.steps.length} passos
               </span>
             </div>
 
@@ -270,30 +346,62 @@ export default function Trocar() {
               {selectedProtocol.summary}
             </p>
 
-            {/* Passos do protocolo */}
+            {/* Passos interativos: tocar para marcar como concluído */}
             <div className="space-y-2.5 pt-1">
-              {selectedProtocol.steps.map((step) => (
-                <div
-                  key={step.number}
-                  className="p-3 rounded-xl bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] flex items-start gap-3"
-                >
-                  <div className="w-6 h-6 rounded-full bg-[#7FBFA8] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                    {step.number}
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                Passos guiados (toque para marcar)
+              </span>
+
+              {selectedProtocol.steps.map((step) => {
+                const isStepChecked = currentTechniqueStepsDone.includes(step.number)
+                return (
+                  <div
+                    key={step.number}
+                    onClick={() => toggleStep(step.number)}
+                    className={cn(
+                      'p-3 rounded-xl border flex items-start gap-3 cursor-pointer transition-all touch-target select-none',
+                      isStepChecked
+                        ? 'bg-[#E8F3EC]/70 dark:bg-[#2A3831]/70 border-[#7FBFA8]'
+                        : 'bg-[#F4F7F2] dark:bg-[#242E29] border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8]/50',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center shrink-0 mt-0.5 transition-all',
+                        isStepChecked
+                          ? 'bg-[#4CAF7D] text-white shadow-sm'
+                          : 'bg-[#7FBFA8] text-white',
+                      )}
+                    >
+                      {isStepChecked ? <CheckCircle2 className="w-4 h-4" /> : step.number}
+                    </div>
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4
+                          className={cn(
+                            'text-xs font-bold leading-snug',
+                            isStepChecked
+                              ? 'text-[#2F4A3E] dark:text-[#8FCCAE]'
+                              : 'text-[#2F4A3E] dark:text-[#E8EFE9]',
+                          )}
+                        >
+                          {step.title}
+                        </h4>
+                        <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] shrink-0">
+                          {isStepChecked ? 'Concluído' : 'Tocar'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                        {step.description}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-0.5 min-w-0">
-                    <h4 className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                      {step.title}
-                    </h4>
-                    <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                      {step.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
-            {/* Interatividade específica por técnica */}
-            {/* Caso 1: Checagem HALT interativa */}
+            {/* Interatividades específicas por técnica */}
+            {/* 1. HALT */}
             {selectedProtocol.id === 'checagem-halt' && (
               <div className="p-3.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30 space-y-2.5">
                 <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
@@ -303,23 +411,23 @@ export default function Trocar() {
                   {[
                     {
                       key: 'fome',
-                      label: 'Estou com fome',
-                      action: 'Coma uma fruta ou tome 1 copo d’água gelada',
+                      label: 'Fome (comida/água)',
+                      action: 'Coma uma fruta ou tome 1 copo de água gelada devagar',
                     },
                     {
                       key: 'raiva',
-                      label: 'Estou com raiva / tensão',
-                      action: 'Lave o rosto com água fria e respire 5 vezes',
+                      label: 'Raiva / Estresse',
+                      action: 'Lave o rosto com água fria e respire 5 vezes antes de responder',
                     },
                     {
                       key: 'solitude',
-                      label: 'Estou sozinho(a)',
-                      action: 'Mande um áudio rápido ou vá para onde tem pessoas',
+                      label: 'Solidão / Isolamento',
+                      action: 'Mande um áudio rápido para um amigo ou vá para perto de pessoas',
                     },
                     {
                       key: 'cansaco',
-                      label: 'Estou com cansaço',
-                      action: 'Deite 10 min de olhos fechados sem olhar o celular',
+                      label: 'Cansaço físico',
+                      action: 'Deite 10 min de olhos fechados sem olhar telas',
                     },
                   ].map((item) => {
                     const active = !!haltAnswers[item.key]
@@ -353,10 +461,168 @@ export default function Trocar() {
               </div>
             )}
 
+            {/* 2. 5-4-3-2-1 */}
+            {selectedProtocol.id === 'aterrissagem-54321' && (
+              <div className="p-3.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30 space-y-2">
+                <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                  Ancoragem sensorial no agora (seus sentidos):
+                </span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-md bg-[#7FBFA8]/20 text-[#2F4A3E] dark:text-[#8FCCAE] font-bold flex items-center justify-center shrink-0">
+                      5
+                    </span>
+                    <input
+                      type="text"
+                      aria-label="5 coisas que você vê"
+                      value={groundingInputs.see}
+                      onChange={(e) => setGroundingInputs((g) => ({ ...g, see: e.target.value }))}
+                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-[#E1E8E2] dark:border-[#2D3A34] bg-white dark:bg-[#242E29] text-xs"
+                      placeholder="5 coisas que você VÊ agora"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-md bg-[#7FBFA8]/20 text-[#2F4A3E] dark:text-[#8FCCAE] font-bold flex items-center justify-center shrink-0">
+                      4
+                    </span>
+                    <input
+                      type="text"
+                      aria-label="4 coisas que você sente no corpo"
+                      value={groundingInputs.feel}
+                      onChange={(e) => setGroundingInputs((g) => ({ ...g, feel: e.target.value }))}
+                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-[#E1E8E2] dark:border-[#2D3A34] bg-white dark:bg-[#242E29] text-xs"
+                      placeholder="4 coisas que você SENTE no corpo"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Dar o play no filme até o fim */}
+            {selectedProtocol.id === 'assistir-filme-fim' && (
+              <div className="p-3.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30 space-y-2 text-xs">
+                <span className="font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                  Qual final você escolhe para amanhã de manhã?
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMovieCompletedFinal('calmo')}
+                    className={cn(
+                      'p-2.5 rounded-xl text-left border transition-all touch-target',
+                      movieCompletedFinal === 'calmo'
+                        ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#4CAF7D] text-[#2F4A3E] dark:text-[#8FCCAE]'
+                        : 'bg-white dark:bg-[#242E29] border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72]',
+                    )}
+                  >
+                    <span className="font-bold block">Final 1: Acordar leve</span>
+                    <span className="text-[11px] block mt-0.5 opacity-90">
+                      Cabeça tranquila e orgulho de ter passado a onda.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMovieCompletedFinal('pesado')}
+                    className={cn(
+                      'p-2.5 rounded-xl text-left border transition-all touch-target',
+                      movieCompletedFinal === 'pesado'
+                        ? 'bg-[#E8F3EC] dark:bg-[#2A3831] border-[#7FBFA8] text-[#2F4A3E] dark:text-[#8FCCAE]'
+                        : 'bg-white dark:bg-[#242E29] border-[#E1E8E2] dark:border-[#2D3A34] text-[#6A7A72]',
+                    )}
+                  >
+                    <span className="font-bold block">Final 2: O impulso</span>
+                    <span className="text-[11px] block mt-0.5 opacity-90">
+                      Lembrar sem drama do cansaço e do dinheiro gasto.
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Dica de reforço gentil */}
             <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/20 flex items-center gap-2 text-xs text-[#2F4A3E] dark:text-[#8FCCAE]">
               <Sparkles className="w-4 h-4 text-[#7FBFA8] shrink-0" />
               <span>{selectedProtocol.gentleReminder}</span>
+            </div>
+
+            {/* =========================================================
+                BLOCO DE CONCLUSÃO REGISTRÁVEL: ALIMENTA O ESPELHO DO MÊS
+               ========================================================= */}
+            <div className="p-4 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Terminei esta técnica
+                </span>
+                <span className="text-[11px] font-semibold text-[#4CAF7D] dark:text-[#8FCCAE]">
+                  Alimenta o Espelho do Mês
+                </span>
+              </div>
+
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                Praticou os passos? Registre como a fissura terminou desta vez. Sem cobrança e sem
+                julgamento.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleFinishTechnique('passou')}
+                  className={cn(
+                    'p-3 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-1 touch-target',
+                    techniqueOutcomeState.status === 'passou'
+                      ? 'bg-[#4CAF7D] text-white border-transparent shadow-sm'
+                      : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#7FBFA8]',
+                  )}
+                >
+                  <CheckCircle2 className="w-4 h-4 text-[#4CAF7D] group-hover:scale-110" />
+                  <span>Passou sem usar</span>
+                  <span className="text-[10px] font-normal opacity-85">
+                    A onda baixou com calma
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleFinishTechnique('usou')}
+                  className={cn(
+                    'p-3 rounded-xl text-xs font-bold border transition-all text-center flex flex-col items-center gap-1 touch-target',
+                    techniqueOutcomeState.status === 'usou'
+                      ? 'bg-[#E8A84C] text-white border-transparent shadow-sm'
+                      : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34] hover:border-[#E8A84C]',
+                  )}
+                >
+                  <Clock className="w-4 h-4 text-[#E8A84C]" />
+                  <span>Houve uso depois</span>
+                  <span className="text-[10px] font-normal opacity-85">Registrado sem culpa</span>
+                </button>
+              </div>
+
+              {techniqueOutcomeState.recorded && (
+                <div className="p-3 rounded-xl bg-white dark:bg-[#1C2420] border border-[#7FBFA8]/40 space-y-1 animate-fade-in text-center">
+                  <p className="text-xs font-bold text-[#4CAF7D] dark:text-[#8FCCAE]">
+                    ✓ Feito. Você escolheu você.
+                  </p>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    Esta técnica foi somada às suas boas ações de hoje e atualizou a taxa de alívio
+                    no seu Espelho do Mês.
+                  </p>
+                  <div className="pt-2 flex justify-center gap-3">
+                    <Link
+                      to="/hoje"
+                      className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] hover:underline"
+                    >
+                      Ver Boas Ações em /hoje
+                    </Link>
+                    <span className="text-[#6A7A72]">•</span>
+                    <Link
+                      to="/diario"
+                      className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] hover:underline"
+                    >
+                      Ver Espelho do Mês
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </RecomecaCard>
         </section>
@@ -446,15 +712,30 @@ export default function Trocar() {
             </div>
 
             {secondsLeft === 0 && (
-              <div className="p-3 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8] text-xs text-[#2F4A3E] dark:text-[#8FCCAE] space-y-1 animate-fade-in">
+              <div className="p-3 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8] text-xs text-[#2F4A3E] dark:text-[#8FCCAE] space-y-2 animate-fade-in">
                 <p className="font-bold flex items-center justify-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-[#4CAF7D]" />
-                  Você esperou os 15 minutos.
+                  Você esperou os 15 minutos com coragem.
                 </p>
                 <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
-                  Como está a intensidade agora? Se quiser, registre seu check-in em /hoje ou
-                  escolha outra atividade abaixo.
+                  Toque para registrar a conclusão desta técnica e alimentar seu Espelho do Mês:
                 </p>
+                <div className="flex justify-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleFinishTechnique('passou')}
+                    className="px-3 py-1.5 rounded-xl bg-[#4CAF7D] text-white text-xs font-bold"
+                  >
+                    Passou sem usar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFinishTechnique('usou')}
+                    className="px-3 py-1.5 rounded-xl bg-[#E8A84C] text-white text-xs font-bold"
+                  >
+                    Usei depois
+                  </button>
+                </div>
               </div>
             )}
           </RecomecaCard>
@@ -505,22 +786,7 @@ export default function Trocar() {
               </button>
             </div>
 
-            {/* Aviso gentil sobre o som relaxante */}
-            <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/20 flex items-center justify-between text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
-              <span className="flex items-center gap-1.5 text-left">
-                <Music className="w-3.5 h-3.5 text-[#7FBFA8] shrink-0" />
-                <span>
-                  {isMusicPlaying
-                    ? 'Som ambiente suave de ondas e acordes calmantes ativo.'
-                    : 'Toque para ouvir um som relaxante sem fones altos.'}
-                </span>
-              </span>
-              <span className="text-[10px] font-semibold text-[#7FBFA8] shrink-0">
-                {isMusicPlaying ? 'Volume suave' : 'Sem autoplay'}
-              </span>
-            </div>
-
-            {/* Animação circular que expande e contrai */}
+            {/* Animação circular */}
             <div className="py-4 flex flex-col items-center justify-center">
               <div
                 className={cn(
@@ -571,7 +837,7 @@ export default function Trocar() {
         </section>
 
         {/* =============================================================
-            5. INCENTIVOS PARA FAZER OUTRA ATIVIDADE (ORGANIZADAS POR TEMPO/ENERGIA)
+            5. ATIVIDADES DA ONDA (TROCA POR TEMPO / ENERGIA)
            ============================================================= */}
         <section className="space-y-3" aria-label="Sugestões de troca por tempo e energia">
           <div className="space-y-1">
@@ -680,7 +946,7 @@ export default function Trocar() {
                 </div>
               </div>
 
-              {/* Registro opcional do desfecho da onda */}
+              {/* Registro do desfecho da onda */}
               <div className="p-3 rounded-xl bg-white dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] space-y-2">
                 <span className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] block">
                   Como a onda terminou desta vez? (alimenta suas métricas no Diário)
@@ -688,11 +954,11 @@ export default function Trocar() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setSavedOutcome('passou')}
+                    onClick={() => handleConfirmActivityOutcome('passou')}
                     className={cn(
                       'p-2 rounded-xl text-xs font-bold border transition-all text-center',
                       savedOutcome === 'passou'
-                        ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent'
+                        ? 'bg-[#4CAF7D] text-white border-transparent'
                         : 'bg-[#F4F7F2] dark:bg-[#242E29] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
                     )}
                   >
@@ -700,7 +966,7 @@ export default function Trocar() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSavedOutcome('usou')}
+                    onClick={() => handleConfirmActivityOutcome('usou')}
                     className={cn(
                       'p-2 rounded-xl text-xs font-bold border transition-all text-center',
                       savedOutcome === 'usou'
@@ -715,8 +981,8 @@ export default function Trocar() {
                 {savedOutcome && (
                   <p className="text-[11px] text-[#4CAF7D] dark:text-[#8FCCAE] font-semibold pt-1 text-center">
                     {savedOutcome === 'passou'
-                      ? '✓ Guardado no seu histórico: esta técnica funcionou hoje!'
-                      : '✓ Registrado com respeito e sem culpa. Cada dado ajuda a prever gatilhos.'}
+                      ? '✓ Guardado no seu histórico e nas Boas Ações: esta técnica funcionou hoje!'
+                      : '✓ Registrado com respeito e sem culpa. Cada escolha conta.'}
                   </p>
                 )}
               </div>
@@ -724,7 +990,7 @@ export default function Trocar() {
               <div className="flex justify-end gap-2">
                 <Link to="/hoje">
                   <RecomecaButton variant="secondary" size="sm">
-                    Ir para o check-in de hoje
+                    Ir para /hoje
                   </RecomecaButton>
                 </Link>
                 <Link to="/diario">

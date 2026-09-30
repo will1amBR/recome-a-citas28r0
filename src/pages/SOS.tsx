@@ -8,6 +8,7 @@ import {
 } from '@/components/recomeca'
 import { MOCK_CONTACT, CRAVING_PROTOCOLS } from '@/lib/mockData'
 import { ambientAudio } from '@/lib/ambientSound'
+import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
   PhoneCall,
   MessageCircle,
@@ -30,6 +31,8 @@ import { cn } from '@/lib/utils'
 
 export default function SOS() {
   const navigate = useNavigate()
+  const { recordTechniqueCompletion } = useRecomecaStore()
+  const [sosFinishedOutcome, setSosFinishedOutcome] = React.useState<'passou' | 'usou' | null>(null)
 
   // Estado da geolocalização para o WhatsApp
   const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(null)
@@ -315,6 +318,54 @@ export default function SOS() {
                   {isMusicPlaying ? 'Pausar música de fundo' : 'Tocar som de fundo suave'}
                 </span>
               </button>
+            </div>
+
+            {/* Conclusão registrável de técnica no SOS */}
+            <div className="pt-2 border-t border-[#7FBFA8]/20 dark:border-[#8FCCAE]/20 space-y-2">
+              <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                Terminei este exercício agora:
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    recordTechniqueCompletion(
+                      'sos-respiracao',
+                      'Respiração guiada no SOS',
+                      'passou',
+                    )
+                    setSosFinishedOutcome('passou')
+                  }}
+                  className={cn(
+                    'p-2.5 rounded-xl text-xs font-bold border transition-all touch-target text-center',
+                    sosFinishedOutcome === 'passou'
+                      ? 'bg-[#4CAF7D] text-white border-transparent'
+                      : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                  )}
+                >
+                  ✓ Consegui passar a onda
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    recordTechniqueCompletion('sos-respiracao', 'Respiração no SOS', 'usou')
+                    setSosFinishedOutcome('usou')
+                  }}
+                  className={cn(
+                    'p-2.5 rounded-xl text-xs font-bold border transition-all touch-target text-center',
+                    sosFinishedOutcome === 'usou'
+                      ? 'bg-[#E8A84C] text-white border-transparent'
+                      : 'bg-white dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] border-[#E1E8E2] dark:border-[#2D3A34]',
+                  )}
+                >
+                  Ainda sentindo vontade
+                </button>
+              </div>
+              {sosFinishedOutcome && (
+                <p className="text-[11px] text-[#4CAF7D] dark:text-[#8FCCAE] font-semibold text-center">
+                  Feito. Você escolheu você. Sua boa ação foi registrada.
+                </p>
+              )}
             </div>
           </RecomecaCard>
         </section>

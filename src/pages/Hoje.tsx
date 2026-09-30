@@ -11,13 +11,13 @@ import {
 } from '@/components/recomeca'
 import {
   MOCK_USER,
-  MOCK_TRACKED_HABITS,
   DAILY_INSPIRATION_PHRASES,
   TrackedHabit,
   CravingEpisode,
+  CRAVING_PROTOCOLS,
 } from '@/lib/mockData'
+import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
-  CalendarDays,
   Sparkles,
   ArrowRight,
   Flame,
@@ -33,19 +33,31 @@ import {
   Trash2,
   HelpCircle,
   Activity,
+  Cigarette,
+  ShieldCheck,
+  CalendarDays,
+  Smile,
+  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function Hoje() {
   const navigate = useNavigate()
-
-  // Lista de hábitos acompanhados
-  const [habits, setHabits] = React.useState<TrackedHabit[]>(MOCK_TRACKED_HABITS)
+  const {
+    habits,
+    goodActions,
+    goodActionsStreakDays,
+    updateCigarettes,
+    recordCheckinDone,
+    recordTechniqueCompletion,
+    lastToastMessage,
+    clearToast,
+  } = useRecomecaStore()
 
   // Mensagem diária acolhedora sorteada
   const [phraseIndex, setPhraseIndex] = React.useState<number>(0)
 
-  // Estado do Check-in diário (perguntas ricas, humanas e 100% opcionais)
+  // Estado do Check-in diário
   const [checkinMood, setCheckinMood] = React.useState<string>('bem')
   const [usedToday, setUsedToday] = React.useState<'nao' | 'sim' | 'reduzido'>('nao')
   const [usedAmountInput, setUsedAmountInput] = React.useState<string>('')
@@ -63,9 +75,16 @@ export default function Hoje() {
   const [generalNotes, setGeneralNotes] = React.useState<string>('')
   const [checkinSaved, setCheckinSaved] = React.useState<boolean>(false)
 
+  // Modal / Gaveta rápida de técnica ao indicar fissura no check-in
+  const [quickKitOpen, setQuickKitOpen] = React.useState<boolean>(false)
+  const [quickTechniqueSelected, setQuickTechniqueSelected] =
+    React.useState<string>('regra-15-minutos')
+
   const handleAddCraving = () => {
     const now = new Date()
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes(),
+    ).padStart(2, '0')}`
     setCravingsList((prev) => [
       ...prev,
       {
@@ -87,12 +106,6 @@ export default function Hoje() {
     setCravingsList((prev) => prev.filter((c) => c.id !== id))
   }
 
-  // Controle de consumo do hábito de redução (ex: café)
-  const reductionHabit = habits.find((h) => h.goalType === 'reduzir')
-  const [reductionCount, setReductionCount] = React.useState<number>(
-    reductionHabit?.dailyCurrent ?? 1,
-  )
-
   const handleNextPhrase = () => {
     setPhraseIndex((prev) => (prev + 1) % DAILY_INSPIRATION_PHRASES.length)
   }
@@ -100,18 +113,48 @@ export default function Hoje() {
   const handleSaveCheckin = (e: React.FormEvent) => {
     e.preventDefault()
     setCheckinSaved(true)
+    recordCheckinDone()
   }
 
-  const handleIncrementReduction = () => {
-    setReductionCount((c) => c + 1)
-  }
+  // Identifica hábitos do tipo tabaco / cigarro
+  const cigaretteHabits = habits.filter(
+    (h) =>
+      h.name.toLowerCase().includes('cigarro') ||
+      h.name.toLowerCase().includes('tabaco') ||
+      (h.substanceKey && ['tabaco', 'cigarro'].includes(h.substanceKey)),
+  )
 
-  const handleDecrementReduction = () => {
-    setReductionCount((c) => Math.max(0, c - 1))
-  }
+  // Hábitos de redução não tabaco (ex: café)
+  const otherReductionHabits = habits.filter(
+    (h) =>
+      h.goalType === 'reduzir' &&
+      !h.name.toLowerCase().includes('cigarro') &&
+      !h.name.toLowerCase().includes('tabaco') &&
+      !(h.substanceKey && ['tabaco', 'cigarro'].includes(h.substanceKey)),
+  )
 
   return (
     <div className="w-full flex-1 flex flex-col font-sans selection:bg-[#7FBFA8]/30">
+      {/* Toast flutuante de reforço gentil */}
+      {lastToastMessage && (
+        <aside
+          aria-label="Reforço positivo gentil"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm p-3 rounded-2xl bg-[#2F4A3E] text-white dark:bg-[#E8F3EC] dark:text-[#1C2420] shadow-xl flex items-center justify-between gap-2 border border-white/20 animate-fade-in"
+        >
+          <div className="flex items-center gap-2 text-xs font-bold">
+            <Heart className="w-4 h-4 text-[#7FBFA8] dark:text-[#4CAF7D] shrink-0" />
+            <span>{lastToastMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={clearToast}
+            className="text-[11px] underline opacity-80 hover:opacity-100"
+          >
+            Fechar
+          </button>
+        </aside>
+      )}
+
       {/* Header Mobile Leve */}
       <ScreenHeader
         title={`Olá, ${MOCK_USER.preferredGreeting}`}
@@ -148,7 +191,216 @@ export default function Hoje() {
         </section>
 
         {/* =============================================================
-            2. CONTADOR GRANDE DE DIAS LIMPOS (Por substância)
+            2. CARD "BOAS AÇÕES DE HOJE" COM CONTADOR DE DIAS SEGUIDOS
+           ============================================================= */}
+        <section aria-label="Boas ações de hoje">
+          <RecomecaCard variant="highlight" padding="lg" className="space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#7FBFA8]/20 dark:border-[#8FCCAE]/20 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-[#4CAF7D] text-white flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Boas ações de hoje
+                  </h2>
+                  <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    Tudo o que você fez por si hoje
+                  </span>
+                </div>
+              </div>
+
+              {/* Contador gentil de dias seguidos cuidando de si */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30">
+                <Heart className="w-3.5 h-3.5 text-[#4CAF7D]" />
+                <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE]">
+                  você cuidou de você {goodActionsStreakDays} dias seguidos
+                </span>
+              </div>
+            </div>
+
+            {/* Lista de boas ações do dia */}
+            {goodActions.length > 0 ? (
+              <div className="space-y-2">
+                {goodActions.map((action) => (
+                  <div
+                    key={action.id}
+                    className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] flex items-center justify-between text-xs min-w-0"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CheckCircle2 className="w-4 h-4 text-[#4CAF7D] shrink-0" />
+                      <div className="min-w-0">
+                        <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] block truncate">
+                          {action.title}
+                        </span>
+                        <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
+                          &ldquo;{action.message}&rdquo;
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] tabular-nums shrink-0 ml-2">
+                      {action.timestamp}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] text-center text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                Sem problema. Amanhã é outro dia. Cada minuto é uma nova chance de escolha gentil.
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] pt-1">
+              <span>Tom sempre de convite • Sem cobrança</span>
+              <Link
+                to="/trocar"
+                className="text-[#7FBFA8] dark:text-[#8FCCAE] font-bold hover:underline flex items-center gap-1"
+              >
+                <span>Fazer uma boa ação agora</span>
+                <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            3. MARCADOR DE CIGARROS (PARA VÍCIOS TABACO / CIGARRO)
+           ============================================================= */}
+        {cigaretteHabits.length > 0 && (
+          <section aria-label="Marcador diário de cigarros e maços" className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+                <Cigarette className="w-4 h-4 text-[#7FBFA8]" />
+                <span>Cigarros de Hoje</span>
+              </h2>
+              <span className="text-xs text-[#4CAF7D] dark:text-[#8FCCAE] font-semibold">
+                20 cigarros = 1 maço
+              </span>
+            </div>
+
+            {cigaretteHabits.map((habit) => {
+              const count = habit.cigarettesToday ?? 0
+              const packs = (count / 20).toFixed(1).replace('.', ',')
+              const weekCount = habit.cigarettesWeek ?? count
+              const weekPacks = (weekCount / 20).toFixed(1).replace('.', ',')
+              const dailyGoal = habit.dailyLimit ?? 6
+              const isWithinGoal = count <= dailyGoal
+
+              return (
+                <RecomecaCard
+                  key={habit.id}
+                  variant="default"
+                  padding="lg"
+                  className="space-y-4 border-l-4 border-l-[#7FBFA8]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
+                        Contador de consumo diário • {habit.name}
+                      </span>
+                      <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                        Marcador de hoje
+                      </h3>
+                    </div>
+                    {habit.goalType === 'reduzir' && (
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE]">
+                        Meta: até {dailyGoal} cigarros
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Mostrador gigante em cigarros e maços com botões grandes +1 / -1 */}
+                  <div className="p-4 rounded-2xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Botão Menos 1 */}
+                      <button
+                        type="button"
+                        onClick={() => updateCigarettes(habit.id, -1)}
+                        aria-label="Diminuir 1 cigarro"
+                        className="w-14 h-14 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8]/20 flex items-center justify-center border border-[#7FBFA8]/40 transition-all active:scale-95 touch-target shadow-sm"
+                      >
+                        <Minus className="w-6 h-6 stroke-[3px]" />
+                      </button>
+
+                      {/* Contagem em destaque duplo: Cigarros E Maços */}
+                      <div className="text-center flex-1 min-w-0">
+                        <div className="flex items-baseline justify-center gap-1.5">
+                          <span className="text-4xl min-[360px]:text-5xl font-bold tabular-nums text-[#2F4A3E] dark:text-[#E8EFE9]">
+                            {count}
+                          </span>
+                          <span className="text-xs min-[360px]:text-sm font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                            {count === 1 ? 'cigarro' : 'cigarros'}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold text-[#7FBFA8] dark:text-[#8FCCAE] block mt-0.5">
+                          (~{packs} {count >= 20 ? 'maços' : 'maço'})
+                        </span>
+                      </div>
+
+                      {/* Botão Mais 1 */}
+                      <button
+                        type="button"
+                        onClick={() => updateCigarettes(habit.id, 1)}
+                        aria-label="Registrar 1 cigarro fumado"
+                        className="w-14 h-14 rounded-2xl bg-[#7FBFA8] hover:bg-[#6DA98F] text-white flex items-center justify-center transition-all active:scale-95 touch-target shadow-md"
+                      >
+                        <Plus className="w-6 h-6 stroke-[3px]" />
+                      </button>
+                    </div>
+
+                    {/* Total da semana e comparação amigável */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34] text-center text-xs">
+                      <div className="p-2 rounded-xl bg-white dark:bg-[#242E29]">
+                        <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block uppercase font-bold">
+                          Total na semana
+                        </span>
+                        <span className="font-bold text-[#2F4A3E] dark:text-[#E8EFE9] text-sm tabular-nums">
+                          {weekCount} cig. (~{weekPacks} maço)
+                        </span>
+                      </div>
+
+                      <div className="p-2 rounded-xl bg-white dark:bg-[#242E29]">
+                        <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block uppercase font-bold">
+                          Status da meta diária
+                        </span>
+                        <span
+                          className={cn(
+                            'font-bold text-xs',
+                            isWithinGoal ? 'text-[#4CAF7D]' : 'text-[#E8A84C]',
+                          )}
+                        >
+                          {isWithinGoal
+                            ? `Hoje até ${dailyGoal} cigarros`
+                            : 'Passou da meta? Sem culpa'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barra de progresso em relação à meta do dia */}
+                  {habit.goalType === 'reduzir' && (
+                    <div className="pt-1">
+                      <ProgressBar
+                        value={Math.min(100, Math.round((count / dailyGoal) * 100))}
+                        size="sm"
+                        label={`Meta: ${count} de ${dailyGoal} cigarros hoje`}
+                        showPercentage
+                        helperText={
+                          isWithinGoal
+                            ? 'Dentro da meta combinada com calma. Cada cigarro não fumado conta.'
+                            : 'Passou da meta? Sem problema. Amanhã é outro dia para recomeçar com calma.'
+                        }
+                      />
+                    </div>
+                  )}
+                </RecomecaCard>
+              )
+            })}
+          </section>
+        )}
+
+        {/* =============================================================
+            4. SEUS CONTADORES DE DIAS LIVRES
            ============================================================= */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
@@ -171,7 +423,6 @@ export default function Hoje() {
                   padding="lg"
                   className="space-y-4 relative overflow-hidden"
                 >
-                  {/* Topo do Card */}
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block">
@@ -189,7 +440,6 @@ export default function Hoje() {
                     />
                   </div>
 
-                  {/* Número Gigante Mobile / Tablet */}
                   <div className="py-2 text-center">
                     <div className="flex flex-wrap items-baseline justify-center gap-1.5 min-[360px]:gap-2">
                       <span className="text-5xl min-[360px]:text-6xl sm:text-7xl font-bold tabular-nums tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9]">
@@ -207,7 +457,7 @@ export default function Hoje() {
                     </p>
                   </div>
 
-                  {/* Histórico que NÃO zera tudo: Melhor sequência e dias no mês */}
+                  {/* Histórico que NÃO zera tudo: Melhor sequência */}
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[#7FBFA8]/20 dark:border-[#8FCCAE]/20">
                     <div className="p-2.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] text-center min-w-0">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] block truncate">
@@ -228,7 +478,6 @@ export default function Hoje() {
                     </div>
                   </div>
 
-                  {/* Barra de Progresso até o próximo marco */}
                   <div className="pt-1">
                     <ProgressBar
                       value={Math.min(
@@ -248,69 +497,73 @@ export default function Hoje() {
         </section>
 
         {/* =============================================================
-            3. META DO DIA PARA QUEM REDUZ
+            5. OUTRAS METAS DE REDUÇÃO (EX: CAFÉ)
            ============================================================= */}
-        {reductionHabit && (
-          <section className="space-y-2">
-            <RecomecaCard variant="default" padding="md" className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] dark:text-[#8FCCAE] flex items-center justify-center shrink-0">
-                    <Coffee className="w-4 h-4" />
+        {otherReductionHabits.map((reductionHabit) => {
+          return (
+            <section key={reductionHabit.id} className="space-y-2">
+              <RecomecaCard variant="default" padding="md" className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] dark:text-[#8FCCAE] flex items-center justify-center shrink-0">
+                      <Coffee className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
+                        Meta do dia: {reductionHabit.name}
+                      </h3>
+                      <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] truncate">
+                        Hoje até {reductionHabit.dailyLimit} {reductionHabit.unit || 'unidades'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
-                      Meta do dia: {reductionHabit.name}
-                    </h3>
-                    <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] truncate">
-                      Hoje até {reductionHabit.dailyLimit} {reductionHabit.unit || 'unidades'}
-                    </p>
+
+                  <div className="flex items-center gap-1.5 bg-[#FDFAF5] dark:bg-[#1C2420] p-1 rounded-xl border border-[#E1E8E2] dark:border-[#2D3A34] shrink-0 ml-auto">
+                    <button
+                      type="button"
+                      onClick={() => updateCigarettes(reductionHabit.id, -1)}
+                      aria-label="Diminuir uma unidade"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#E8F3EC] dark:hover:bg-[#2A3831] text-[#2F4A3E] dark:text-[#E8EFE9] touch-target"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-7 text-center font-bold tabular-nums text-sm">
+                      {reductionHabit.dailyCurrent ?? 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => updateCigarettes(reductionHabit.id, 1)}
+                      aria-label="Adicionar uma unidade"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#E8F3EC] dark:hover:bg-[#2A3831] text-[#2F4A3E] dark:text-[#E8EFE9] touch-target"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-[#FDFAF5] dark:bg-[#1C2420] p-1 rounded-xl border border-[#E1E8E2] dark:border-[#2D3A34] shrink-0 ml-auto">
-                  <button
-                    type="button"
-                    onClick={handleDecrementReduction}
-                    aria-label="Diminuir uma unidade"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#E8F3EC] dark:hover:bg-[#2A3831] text-[#2F4A3E] dark:text-[#E8EFE9] touch-target"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-7 text-center font-bold tabular-nums text-sm">
-                    {reductionCount}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleIncrementReduction}
-                    aria-label="Adicionar uma unidade"
-                    className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[#E8F3EC] dark:hover:bg-[#2A3831] text-[#2F4A3E] dark:text-[#E8EFE9] touch-target"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <ProgressBar
-                value={Math.min(
-                  100,
-                  Math.round((reductionCount / (reductionHabit.dailyLimit || 1)) * 100),
-                )}
-                size="sm"
-                label={`${reductionCount} de ${reductionHabit.dailyLimit} ${reductionHabit.unit}`}
-                showPercentage
-                helperText={
-                  reductionCount <= (reductionHabit.dailyLimit || 2)
-                    ? 'Dentro da meta combinada com calma.'
-                    : 'Passou um pouco da meta? Seja gentil com você. Amanhã é outro dia.'
-                }
-              />
-            </RecomecaCard>
-          </section>
-        )}
+                <ProgressBar
+                  value={Math.min(
+                    100,
+                    Math.round(
+                      ((reductionHabit.dailyCurrent ?? 1) / (reductionHabit.dailyLimit || 1)) * 100,
+                    ),
+                  )}
+                  size="sm"
+                  label={`${reductionHabit.dailyCurrent ?? 1} de ${reductionHabit.dailyLimit} ${reductionHabit.unit}`}
+                  showPercentage
+                  helperText={
+                    (reductionHabit.dailyCurrent ?? 1) <= (reductionHabit.dailyLimit || 2)
+                      ? 'Dentro da meta combinada com calma.'
+                      : 'Passou um pouco da meta? Seja gentil com você. Amanhã é outro dia.'
+                  }
+                />
+              </RecomecaCard>
+            </section>
+          )
+        })}
 
         {/* =============================================================
-            4. CHECK-IN DIÁRIO (PERGUNTAS RICAS, HUMANAS E 100% OPCIONAIS)
+            6. CHECK-IN DIÁRIO (COM KIT RÁPIDO EM 1 TOQUE QUANDO HÁ FISSURA)
            ============================================================= */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
@@ -334,32 +587,9 @@ export default function Hoje() {
                     Check-in de hoje guardado com carinho
                   </h3>
                   <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] max-w-xs mx-auto">
-                    Obrigado por tirar esse minutinho para olhar para você. Esse cuidado diário gera
-                    métricas reais sobre seus horários e gatilhos.
+                    Feito. Você escolheu você. Esse minutinho diário alimenta suas boas ações e suas
+                    métricas no Diário.
                   </p>
-                </div>
-                {/* Cartão de reforço gentil pós check-in com técnica mais usada */}
-                <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/40 text-left space-y-2 max-w-sm mx-auto">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#7FBFA8] shrink-0" />
-                    <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                      O que mais te ajudou nas últimas fissuras
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
-                    Nas suas últimas fissuras registradas, o que mais te ajudou foi:{' '}
-                    <strong>caminhada curta no parque ou na calçada</strong> (89% de alívio). Quer
-                    tentar de novo quando bater vontade?
-                  </p>
-                  <div className="pt-1 flex items-center justify-between">
-                    <Link
-                      to="/trocar"
-                      className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] hover:underline flex items-center gap-1"
-                    >
-                      <span>Abrir kit de técnicas e troca</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
                 </div>
 
                 <div className="pt-2 flex justify-center gap-3">
@@ -383,8 +613,8 @@ export default function Hoje() {
                 <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/30 flex items-start gap-2.5 text-xs text-[#2F4A3E] dark:text-[#8FCCAE]">
                   <HelpCircle className="w-4 h-4 text-[#7FBFA8] shrink-0 mt-0.5" />
                   <span>
-                    Responda só o que quiser. Nenhuma pergunta é obrigatória — salvar sempre
-                    funciona, no seu ritmo.
+                    Responda só o que quiser. Nenhuma pergunta é obrigatória — salvar nunca é
+                    bloqueado.
                   </span>
                 </div>
 
@@ -450,7 +680,7 @@ export default function Hoje() {
                     <div className="pt-1.5 animate-fade-in space-y-2">
                       <input
                         type="text"
-                        placeholder="Quanto usou aproximadamente? (opcional)"
+                        placeholder="Quanto usou aproximadamente? (ex: 2 cigarros, 1 dose...)"
                         value={usedAmountInput}
                         onChange={(e) => setUsedAmountInput(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9] focus-visible:outline-2 focus-visible:outline-[#7FBFA8]"
@@ -459,7 +689,7 @@ export default function Hoje() {
                   )}
                 </div>
 
-                {/* Pergunta 3: FISSURA RICA COM HORÁRIO, ANTES E DEPOIS */}
+                {/* Pergunta 3: FISSURA RICA COM KIT RÁPIDO EM 1 TOQUE */}
                 <div className="space-y-3 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
@@ -497,20 +727,63 @@ export default function Hoje() {
                     </button>
                   </div>
 
-                  {/* Se bateu fissura: detalhamento rico e 100% opcional */}
+                  {/* =========================================================
+                      KIT RÁPIDO ACESSÍVEL EM 1 TOQUE QUANDO INDICA FISSURA
+                     ========================================================= */}
                   {feltCraving === 'sim' && (
                     <div className="space-y-3 pt-2 animate-fade-in">
-                      <div className="p-3 rounded-xl bg-[#E8F3EC]/70 dark:bg-[#2A3831]/70 border border-[#7FBFA8]/30 text-xs text-[#2F4A3E] dark:text-[#8FCCAE] space-y-1">
-                        <p className="font-semibold flex items-center gap-1.5">
-                          <Activity className="w-3.5 h-3.5 text-[#4CAF7D]" />
-                          Entender horários e o que aconteceu antes e depois
+                      <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8] space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                            <Zap className="w-4 h-4 text-[#4CAF7D]" />
+                            Kit rápido de fissura (1 toque)
+                          </span>
+                          <span className="text-[10px] font-semibold text-[#4CAF7D] bg-white/60 dark:bg-[#1C2420] px-2 py-0.5 rounded-full">
+                            Alívio imediato
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                          A vontade sobe e desce em minutos. Escolha uma técnica em 1 toque agora:
                         </p>
-                        <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
-                          Saber o horário e o contexto nos ajuda a prever momentos críticos e a
-                          construir métricas reais para a sua rotina.
-                        </p>
+
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {[
+                            {
+                              id: 'regra-15-minutos',
+                              label: '15 Minutos',
+                              sub: 'Esperar com calma',
+                            },
+                            { id: 'navegar-onda', label: 'Surfar a onda', sub: 'Respiração 4s/6s' },
+                            { id: 'checagem-halt', label: 'HALT', sub: 'Fome/Raiva/Sono' },
+                          ].map((item) => (
+                            <Link
+                              key={item.id}
+                              to="/trocar"
+                              className="p-2.5 rounded-xl bg-white dark:bg-[#1C2420] border border-[#7FBFA8]/40 hover:border-[#7FBFA8] text-center transition-all touch-target flex flex-col justify-between"
+                            >
+                              <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block truncate">
+                                {item.label}
+                              </span>
+                              <span className="text-[10px] text-[#4CAF7D] font-medium block truncate">
+                                {item.sub}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+
+                        <div className="pt-1 flex items-center justify-between">
+                          <Link
+                            to="/trocar"
+                            className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] hover:underline flex items-center gap-1"
+                          >
+                            <span>Ver todas as 6 técnicas guiadas</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
                       </div>
 
+                      {/* Lista opcional de episódios de fissura */}
                       <div className="space-y-3">
                         {cravingsList.map((craving, idx) => (
                           <div
@@ -534,12 +807,10 @@ export default function Hoje() {
                               )}
                             </div>
 
-                            {/* Horário e Momento do dia */}
                             <div className="grid grid-cols-2 gap-2">
                               <div className="space-y-1">
-                                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1">
-                                  <span>Qual horário?</span>
-                                  <span className="text-[10px] font-normal">(opcional)</span>
+                                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                                  Qual horário? (opcional)
                                 </label>
                                 <input
                                   type="time"
@@ -552,13 +823,12 @@ export default function Hoje() {
                               </div>
 
                               <div className="space-y-1">
-                                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1">
-                                  <span>Que dia / período?</span>
-                                  <span className="text-[10px] font-normal">(opcional)</span>
+                                <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                                  Que dia / período?
                                 </label>
                                 <input
                                   type="text"
-                                  placeholder="Ex.: Hoje tarde, Ontem à noite"
+                                  placeholder="Ex.: Hoje tarde"
                                   value={craving.dayOrPeriod || ''}
                                   onChange={(e) =>
                                     handleUpdateCraving(craving.id, 'dayOrPeriod', e.target.value)
@@ -568,17 +838,13 @@ export default function Hoje() {
                               </div>
                             </div>
 
-                            {/* O que estava acontecendo ANTES */}
                             <div className="space-y-1">
-                              <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center justify-between">
-                                <span>O que estava acontecendo antes?</span>
-                                <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] font-normal">
-                                  opcional
-                                </span>
+                              <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                                O que estava acontecendo antes? (opcional)
                               </label>
                               <input
                                 type="text"
-                                placeholder="Ex.: Briga em casa, pressão no trabalho, vi alguém usando..."
+                                placeholder="Ex.: Pressão no trabalho, vi alguém usando..."
                                 value={craving.whatBefore || ''}
                                 onChange={(e) =>
                                   handleUpdateCraving(craving.id, 'whatBefore', e.target.value)
@@ -587,17 +853,13 @@ export default function Hoje() {
                               />
                             </div>
 
-                            {/* E depois, o que aconteceu */}
                             <div className="space-y-1">
-                              <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center justify-between">
-                                <span>E depois, o que aconteceu?</span>
-                                <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] font-normal">
-                                  opcional
-                                </span>
+                              <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                                E depois, o que aconteceu? (opcional)
                               </label>
                               <input
                                 type="text"
-                                placeholder="Ex.: Respirei fundo, tomei água gelada, a onda passou em 10 min..."
+                                placeholder="Ex.: Respirei fundo, tomei água e a onda baixou..."
                                 value={craving.whatAfter || ''}
                                 onChange={(e) =>
                                   handleUpdateCraving(craving.id, 'whatAfter', e.target.value)
@@ -621,7 +883,7 @@ export default function Hoje() {
                   )}
                 </div>
 
-                {/* Pergunta 4: Reflexão ou notas livres */}
+                {/* Pergunta 4: Notas livres */}
                 <div className="space-y-1.5 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
                   <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center justify-between">
                     <span>4. Alguma reflexão ou nota para você mesmo?</span>
@@ -647,7 +909,7 @@ export default function Hoje() {
         </section>
 
         {/* =============================================================
-            5. CARD "RECOMEÇAR FAZ PARTE" (SE MARCOU QUE USOU HOJE)
+            7. CARD "RECOMEÇAR FAZ PARTE" (SE MARCOU QUE USOU HOJE)
            ============================================================= */}
         {usedToday === 'sim' && (
           <section className="space-y-3 animate-fade-in">
@@ -663,8 +925,7 @@ export default function Hoje() {
 
               <p className="text-xs sm:text-sm text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed">
                 Tropeçar não apaga nada do que você já conquistou. Sua melhor sequência continua
-                registrada com orgulho (<strong>34 dias</strong>) e hoje é apenas um dia a mais de
-                aprendizado.
+                registrada com orgulho e hoje é apenas um dia a mais de aprendizado. Sem culpa.
               </p>
 
               <div className="pt-2 flex flex-col sm:flex-row gap-2">
@@ -694,7 +955,7 @@ export default function Hoje() {
         )}
 
         {/* =============================================================
-            6. ACESSO RÁPIDO: TROCA DE HÁBITO
+            8. ACESSO RÁPIDO: TROCA DE HÁBITO E TÉCNICAS
            ============================================================= */}
         <section className="pt-2">
           <Link
@@ -710,7 +971,7 @@ export default function Hoje() {
                   Bateu a vontade agora?
                 </span>
                 <span className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                  Timer de 15 minutos e respiração
+                  Timer de 15 minutos, respiração e 6 técnicas guiadas
                 </span>
               </div>
             </div>

@@ -11,6 +11,7 @@ import {
   LegalNoticeFooter,
 } from '@/components/recomeca'
 import { MOCK_TRACKED_HABITS, ONBOARDING_SUBSTANCES } from '@/lib/mockData'
+import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
   CheckCircle2,
   ReceiptText,
@@ -23,6 +24,7 @@ import {
   ArrowRight,
   Shuffle,
   Info,
+  Cigarette,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +41,7 @@ const DEFAULT_TRIGGERS = [
 
 export default function Registrar() {
   const navigate = useNavigate()
+  const { recordHonestEpisode } = useRecomecaStore()
 
   // Campos ricos, humanos e 100% opcionais
   const [mood, setMood] = React.useState<string>('dificil')
@@ -46,12 +49,19 @@ export default function Registrar() {
     MOCK_TRACKED_HABITS[0].name,
   )
   const [amountUsed, setAmountUsed] = React.useState<string>('')
+
+  // Campos específicos de tabaco / cigarros
+  const [cigaretteInputMode, setCigaretteInputMode] = React.useState<'cigarros' | 'macos'>(
+    'cigarros',
+  )
+  const [cigaretteQuantity, setCigaretteQuantity] = React.useState<string>('3')
+
   const [selectedTriggers, setSelectedTriggers] = React.useState<string[]>(['estresse'])
   const [freeText, setFreeText] = React.useState<string>('')
   const [whatHappenedBefore, setWhatHappenedBefore] = React.useState<string>('')
   const [consequencesText, setConsequencesText] = React.useState<string>('')
 
-  // Fissura associada ao registro: bateu fissura? qual horário?
+  // Fissura associada ao registro
   const [hadCravingBefore, setHadCravingBefore] = React.useState<'sim' | 'nao' | 'indiferente'>(
     'sim',
   )
@@ -70,7 +80,10 @@ export default function Registrar() {
   // Modal acolhedor após salvar
   const [isSuccessModalOpen, setIsSuccessModalOpen] = React.useState(false)
 
-  // Cálculo automático do tempo total gasto
+  const isTobaccoSelected =
+    selectedSubstance.toLowerCase().includes('cigarro') ||
+    selectedSubstance.toLowerCase().includes('tabaco')
+
   const calculateTotalTime = (start: string, end: string) => {
     if (!start || !end) return null
     const [h1, m1] = start.split(':').map(Number)
@@ -79,7 +92,6 @@ export default function Registrar() {
 
     let totalMinutes = h2 * 60 + m2 - (h1 * 60 + m1)
     if (totalMinutes < 0) {
-      // Cruzou a meia-noite
       totalMinutes += 24 * 60
     }
 
@@ -120,6 +132,12 @@ export default function Registrar() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    let cigCount: number | undefined
+    if (isTobaccoSelected) {
+      const num = parseFloat(cigaretteQuantity) || 0
+      cigCount = cigaretteInputMode === 'macos' ? Math.round(num * 20) : Math.round(num)
+    }
+    recordHonestEpisode(selectedSubstance, cigCount)
     setIsSuccessModalOpen(true)
   }
 
@@ -135,8 +153,8 @@ export default function Registrar() {
         <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/30 flex items-start gap-2.5 text-xs text-[#2F4A3E] dark:text-[#8FCCAE] leading-relaxed">
           <Heart className="w-4 h-4 text-[#4CAF7D] shrink-0 mt-0.5" />
           <span>
-            Registrar o que aconteceu já é uma vitória de coragem. Entender o momento é a melhor
-            forma de se cuidar no futuro.
+            Registrar o que aconteceu já é uma vitória de coragem e autocuidado. Feito. Você
+            escolheu você.
           </span>
         </div>
 
@@ -295,7 +313,7 @@ export default function Registrar() {
         </section>
 
         {/* =============================================================
-            2. CAMPOS: HUMOR, GATILHOS E SUBSTÂNCIA
+            2. CAMPOS: HUMOR, GATILHOS E SUBSTÂNCIA (COM SUPORTE A CIGARROS/MAÇOS)
            ============================================================= */}
         <section className="space-y-4">
           <RecomecaCard variant="default" padding="lg" className="space-y-5">
@@ -327,13 +345,79 @@ export default function Registrar() {
                 </select>
               </div>
 
-              <RecomecaInput
-                label="Quantidade consumida (aproximada)"
-                placeholder="Ex.: 3 latas, 2 doses, 1 maço..."
-                value={amountUsed}
-                onChange={(e) => setAmountUsed(e.target.value)}
-                helperText="Apenas para você ter consciência do seu corpo. Nunca há julgamento."
-              />
+              {/* Registro específico de cigarros / maços quando é tabaco ou cigarro */}
+              {isTobaccoSelected ? (
+                <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1.5">
+                      <Cigarette className="w-4 h-4 text-[#4CAF7D]" />
+                      Quantidade fumada no episódio
+                    </span>
+                    <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                      20 cig. = 1 maço
+                    </span>
+                  </div>
+
+                  {/* Seletor de unidade: cigarros ou maços */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCigaretteInputMode('cigarros')}
+                      className={cn(
+                        'py-2 px-2 rounded-xl text-xs font-bold border transition-all touch-target text-center',
+                        cigaretteInputMode === 'cigarros'
+                          ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                          : 'bg-white dark:bg-[#1C2420] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
+                      )}
+                    >
+                      Em cigarros soltos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCigaretteInputMode('macos')}
+                      className={cn(
+                        'py-2 px-2 rounded-xl text-xs font-bold border transition-all touch-target text-center',
+                        cigaretteInputMode === 'macos'
+                          ? 'bg-[#7FBFA8] dark:bg-[#8FCCAE] text-white dark:text-[#1C2420] border-transparent shadow-sm'
+                          : 'bg-white dark:bg-[#1C2420] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]',
+                      )}
+                    >
+                      Em maços inteiros
+                    </button>
+                  </div>
+
+                  <div className="space-y-1">
+                    <input
+                      type="number"
+                      step={cigaretteInputMode === 'macos' ? '0.1' : '1'}
+                      min="0"
+                      value={cigaretteQuantity}
+                      onChange={(e) => setCigaretteQuantity(e.target.value)}
+                      placeholder={
+                        cigaretteInputMode === 'macos' ? 'Ex.: 0.5 maço' : 'Ex.: 4 cigarros'
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm font-bold tabular-nums bg-white dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                    />
+                    <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                      {cigaretteInputMode === 'cigarros'
+                        ? `Equivale a ~${((parseFloat(cigaretteQuantity) || 0) / 20).toFixed(
+                            1,
+                          )} maço(s). Atualiza seus cigarros de hoje e da semana.`
+                        : `Equivale a ~${Math.round(
+                            (parseFloat(cigaretteQuantity) || 0) * 20,
+                          )} cigarros soltos. Atualiza seus cigarros de hoje e da semana.`}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <RecomecaInput
+                  label="Quantidade consumida (aproximada)"
+                  placeholder="Ex.: 3 latas, 2 doses, 1 porção..."
+                  value={amountUsed}
+                  onChange={(e) => setAmountUsed(e.target.value)}
+                  helperText="Apenas para você ter consciência do seu corpo. Nunca há julgamento."
+                />
+              )}
             </div>
 
             {/* Gatilhos */}
@@ -370,7 +454,6 @@ export default function Registrar() {
           </div>
 
           <RecomecaCard variant="default" padding="lg" className="space-y-4">
-            {/* Alternância de Modo */}
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -436,7 +519,6 @@ export default function Registrar() {
               </div>
             ) : (
               <div className="space-y-4 animate-fade-in">
-                {/* Valor gasto */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center gap-1">
                     <DollarSign className="w-3.5 h-3.5 text-[#7FBFA8]" />
@@ -452,7 +534,6 @@ export default function Registrar() {
                   />
                 </div>
 
-                {/* Horários e cálculo automático */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <label className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1 truncate">
@@ -481,7 +562,6 @@ export default function Registrar() {
                   </div>
                 </div>
 
-                {/* Exibição do tempo calculado */}
                 {totalTimeCalculated && (
                   <div className="p-2.5 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-xs font-semibold text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center justify-between tabular-nums">
                     <span>Tempo total no episódio:</span>
@@ -489,7 +569,6 @@ export default function Registrar() {
                   </div>
                 )}
 
-                {/* Itens consumidos adicionáveis */}
                 <div className="space-y-2 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
                   <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
                     Itens consumidos (lista rápida)
@@ -500,7 +579,7 @@ export default function Registrar() {
                       type="text"
                       value={newItemInput}
                       onChange={(e) => setNewItemInput(e.target.value)}
-                      placeholder="Ex.: 2 chopes, petisco, energético..."
+                      placeholder="Ex.: 2 chopes, petisco, maço de cigarro..."
                       className="flex-1 px-3 py-2 rounded-xl text-xs bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
                     />
                     <button
@@ -586,9 +665,7 @@ export default function Registrar() {
         <LegalNoticeFooter />
       </form>
 
-      {/* =============================================================
-          MODAL ACOLHEDOR PÓS-REGISTRO
-         ============================================================= */}
+      {/* MODAL ACOLHEDOR PÓS-REGISTRO */}
       <ConfirmationModal
         open={isSuccessModalOpen}
         onOpenChange={setIsSuccessModalOpen}
