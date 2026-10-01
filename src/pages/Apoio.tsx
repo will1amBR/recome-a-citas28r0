@@ -13,6 +13,7 @@ import {
   MEDICATION_SCREENING_QUESTIONS,
   PrescribedMedication,
 } from '@/lib/mockData'
+import { getSupportResources, SupportResourceData } from '@/services/recomecaBackend'
 import { useRecomecaStore } from '@/lib/recomecaStore'
 import {
   ExternalLink,
@@ -32,6 +33,17 @@ import { cn } from '@/lib/utils'
 
 export default function Apoio() {
   const { contact } = useRecomecaStore()
+  const [dbResources, setDbResources] = React.useState<SupportResourceData[]>([])
+
+  React.useEffect(() => {
+    getSupportResources()
+      .then((res) => {
+        if (res && res.length > 0) {
+          setDbResources(res)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // Seção Meus Remédios
   const [medications, setMedications] = React.useState<PrescribedMedication[]>(MOCK_MEDICATIONS)
@@ -515,49 +527,60 @@ export default function Apoio() {
           </div>
 
           <div className="space-y-3">
-            {SUPPORT_ORGANIZATIONS.map((org) => (
-              <RecomecaCard key={org.id} variant="default" padding="md" className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                        {org.name}
-                      </h3>
-                      {org.emergencyBadge && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] border border-[#7FBFA8]/30">
-                          {org.emergencyBadge}
-                        </span>
+            {(dbResources.length > 0
+              ? dbResources
+              : SUPPORT_ORGANIZATIONS.map((o) => ({
+                  id: o.id,
+                  nome: o.name,
+                  descricao: o.description,
+                  link: o.url,
+                  telefone: o.phone,
+                }))
+            ).map((org) => {
+              const phoneDigits = (org.telefone || '').replace(/\D/g, '')
+              return (
+                <RecomecaCard key={org.id} variant="default" padding="md" className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                          {org.nome}
+                        </h3>
+                      </div>
+                      {org.descricao && (
+                        <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] mt-1 leading-relaxed">
+                          {org.descricao}
+                        </p>
                       )}
                     </div>
-                    <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] mt-1 leading-relaxed">
-                      {org.description}
-                    </p>
                   </div>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
-                  <a
-                    href={org.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] hover:bg-[#7FBFA8]/20 text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] transition-colors touch-target max-w-full"
-                  >
-                    <span className="truncate">Acessar site oficial</span>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  </a>
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                    {org.link && (
+                      <a
+                        href={org.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] hover:bg-[#7FBFA8]/20 text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] transition-colors touch-target max-w-full"
+                      >
+                        <span className="truncate">Acessar site oficial</span>
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                      </a>
+                    )}
 
-                  {org.phone && (
-                    <a
-                      href={`tel:${org.phone}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/40 hover:bg-[#E8F3EC] text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] transition-colors touch-target max-w-full"
-                    >
-                      <PhoneCall className="w-3.5 h-3.5 text-[#7FBFA8] shrink-0" />
-                      <span className="truncate">{org.phoneDisplay || `Ligar ${org.phone}`}</span>
-                    </a>
-                  )}
-                </div>
-              </RecomecaCard>
-            ))}
+                    {org.telefone && (
+                      <a
+                        href={`tel:${phoneDigits}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/40 hover:bg-[#E8F3EC] text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] transition-colors touch-target max-w-full"
+                      >
+                        <PhoneCall className="w-3.5 h-3.5 text-[#7FBFA8] shrink-0" />
+                        <span className="truncate">Ligar {org.telefone}</span>
+                      </a>
+                    )}
+                  </div>
+                </RecomecaCard>
+              )
+            })}
           </div>
         </section>
 

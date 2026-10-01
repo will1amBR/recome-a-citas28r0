@@ -1,4 +1,28 @@
 import * as React from 'react'
+import { useAuth } from './authContext'
+import {
+  getProfile,
+  upsertProfile,
+  getEmergencyContacts,
+  upsertEmergencyContact,
+  getUserSubstances,
+  createUserSubstance,
+  updateUserSubstance,
+  getUseLogs,
+  createUseLog,
+  deleteUseLog,
+  getEpisodes,
+  createEpisode,
+  getCravings,
+  createCraving,
+  getPlanTasks,
+  createPlanTask,
+  deletePlanTask,
+  getPlanCompletions,
+  togglePlanCompletion,
+  getDiaryEntries,
+  upsertDiaryEntry,
+} from '@/services/recomecaBackend'
 import {
   TrackedHabit,
   GoodActionRecord,
@@ -111,13 +135,27 @@ export interface RecomecaStore {
     substanceName: string,
     cigarettesAmount?: number,
     fullEpisode?: Partial<EpisodeLog>,
+    receiptFile?: File | null,
   ) => void
   clearToast: () => void
+  // Integração Backend
+  isDemoUser: boolean
+  hasLocalDataToImport: boolean
+  isImporting: boolean
+  importLocalDataToBackend: () => Promise<void>
+  saveFullOnboardingToBackend: () => Promise<void>
 }
 
 const StoreContext = React.createContext<RecomecaStore | null>(null)
 
 export function RecomecaProvider({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated } = useAuth()
+  const isDemoUser = !isAuthenticated
+
+  // Estado para importação gentil de dados locais
+  const [hasLocalDataToImport, setHasLocalDataToImport] = React.useState<boolean>(false)
+  const [isImporting, setIsImporting] = React.useState<boolean>(false)
+
   // Hábitos
   const [habits, setHabits] = React.useState<TrackedHabit[]>(() => {
     try {
@@ -317,6 +355,241 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       return updated
     })
   }, [])
+
+  // Carregamento inicial a partir do PocketBase se autenticado
+  React.useEffect(() => {
+    if (!isAuthenticated || !user?.id) {
+      setHasLocalDataToImport(false)
+      return
+    }
+
+    const loadBackendData = async () => {
+      try {
+        // 1. Carrega Perfil
+        const prof = await getProfile(user.id)
+        if (prof) {
+          setIdentityState((prev) => ({
+            ...prev,
+            preferredName: prof.nome_preferido || prev.preferredName,
+            socialName: prof.nome_social || prev.socialName,
+            legalName: prof.nome_registro || prev.legalName,
+            genderIdentity: prof.genero || prev.genderIdentity,
+            sexualOrientation: prof.orientacao || prev.sexualOrientation,
+            genderCustomDescription: prof.descricao_identidade || prev.genderCustomDescription,
+          }))
+          if (prof.dia_a_dia || prof.rotina_livre) {
+            setDailyRoutineState((prev) => ({
+              ...prev,
+              workStudyRoutine: prof.dia_a_dia || prev.workStudyRoutine,
+              freeTimeRoutine: prof.rotina_livre || prev.freeTimeRoutine,
+            }))
+          }
+          if (
+            prof.situacoes_risco &&
+            Array.isArray(prof.situacoes_risco) &&
+            prof.situacoes_risco.length > 0
+          ) {
+            setUserRiskSituationsState(prof.situacoes_risco)
+          }
+        } else {
+          // Verifica se há dados no localStorage para oferecer importação
+          const localId = localStorage.getItem(STORAGE_KEY_IDENTITY)
+          const localRoutine = localStorage.getItem(STORAGE_KEY_DAILY_ROUTINE)
+          if (localId || localRoutine) {
+            setHasLocalDataToImport(true)
+          }
+        }
+
+        // 2. Carrega Contato de Emergência
+        const contacts = await getEmergencyContacts(user.id)
+        if (contacts && contacts.length > 0) {
+          const c = contacts[0]
+          setContact({
+            name: c.nome,
+            phone: c.telefone,
+            displayPhone: c.telefone,
+            relationship: 'Pessoa de confiança',
+            hasConsent: !!c.ja_avisou,
+          })
+        }
+
+        // 3. Carrega Substâncias do Usuário
+        const subs = await getUserSubstances(user.id)
+        if (subs && subs.length > 0) {
+          const mappedHabits: TrackedHabit[] = subs.map((s) => {
+            const startDate = s.data_inicio ? new Date(s.data_inicio) : new Date()
+            const now = new Date()
+            const diffTime = Math.max(0, now.getTime() - startDate.getTime())
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+            return {
+              id: s.id || `sub-${Math.random()}`,
+              name: s.tipo,
+              category: 'substancia',
+              cleanDaysThisMonth: diffDays,
+              currentStreakDays: diffDays,
+              bestStreakDays: s.melhor_sequencia || Math.max(diffDays, 1),
+              milestoneGoalDays: 30,
+              goalType: s.objetivo === 'parar' ? 'parar' : 'reduzir',
+              dailyLimit: s.meta_dia_numero,
+              dailyGoalCustom: s.meta_dia_texto,
+              startDate: s.data_inicio || new Date().toISOString().slice(0, 10),
+            }
+          })
+          setHabits(mappedHabits)
+          if (mappedHabits.length > 0) {
+            setActiveHabitIdState(mappedHabits[0].id)
+          }
+        }
+
+        // 4. Carrega Tarefas do Plano
+        const tasks = await getPlanTasks(user.id)
+        if (tasks && tasks.length > 0) {
+          const mappedTasks: DailyScheduleTask[] = tasks.map((t) => ({
+            id: t.id || `task-${Math.random()}`,
+            title: t.texto,
+            subtitle: t.explicacao,
+            category: (t.categoria as DailyScheduleTask['category']) || 'casa',
+            dopamineRewardTip: 'Recompensa saudável e mente leve',
+            completedTodayMessage: 'Feito. Você escolheu cuidar de você.',
+            isDefault: false,
+          }))
+          setScheduleTasks(mappedTasks)
+        }
+
+        // 5. Carrega Conclusões de Tarefas
+        const completions = await getPlanCompletions(user.id, 100)
+        if (completions && completions.length > 0) {
+          const mappedLogs: DayTaskCompletionLog[] = completions.map((c) => ({
+            date: c.data,
+            taskId: c.tarefa_id_string || c.tarefa || '',
+            taskTitle: c.tarefa_titulo || 'Tarefa concluída',
+            completedAt: c.hora || '12:00',
+          }))
+          setTaskCompletionLogs(mappedLogs)
+        }
+
+        // 6. Carrega Use Logs (ex: cigarros)
+        const logs = await getUseLogs(user.id, 50)
+        if (logs && logs.length > 0) {
+          const todayDateStr = new Date().toISOString().slice(0, 10)
+          const mappedCigLogs: CigaretteLogItem[] = logs
+            .filter(
+              (l) =>
+                (l.unidade || '').includes('cigarro') ||
+                (l.substancia_nome || '').toLowerCase().includes('cigarro'),
+            )
+            .map((l) => ({
+              id: l.id || `log-${Math.random()}`,
+              date: l.data_hora ? l.data_hora.slice(0, 10) : todayDateStr,
+              timestamp: (l.data_hora || '').split('T')[1]?.slice(0, 5) || '12:00',
+              context: l.contexto || 'Registro do dia',
+              quantity: l.quantidade || 1,
+              note: l.observacao,
+            }))
+          if (mappedCigLogs.length > 0) {
+            setCigaretteLogs(mappedCigLogs)
+          }
+        }
+
+        // 7. Carrega Episódios
+        const epList = await getEpisodes(user.id, 30)
+        if (epList && epList.length > 0) {
+          const mappedEps: EpisodeLog[] = epList.map((ep) => ({
+            id: ep.id || `ep-${Math.random()}`,
+            date:
+              ep.data_hora?.split('T')[0] ||
+              ep.created?.split(' ')[0] ||
+              new Date().toISOString().slice(0, 10),
+            time: ep.data_hora?.split('T')[1]?.slice(0, 5) || '12:00',
+            substanceName: ep.substancia || 'Substância',
+            amountDescription: ep.texto || 'Uso registrado',
+            mood: ep.humor || 'neutro',
+            triggers: ep.gatilho || [],
+            freeText: ep.depois || '',
+            whatHappenedBefore: ep.antes,
+            whatHappenedAfter: ep.depois || '',
+            cravingTime: ep.craving_time,
+            receipt: ep.recibo_foto
+              ? {
+                  spentAmount: ep.valor_gasto || 0,
+                  arrivalTime: ep.hora_chegada || '20:00',
+                  departureTime: ep.hora_saida || '22:00',
+                  durationMinutes: 120,
+                  itemsConsumed: ep.itens || [],
+                }
+              : undefined,
+            details: ep.details_json as any,
+          }))
+          setEpisodeLogs(mappedEps)
+        }
+      } catch {
+        // Fallback silencioso para manter uso contínuo se der erro
+      }
+    }
+
+    loadBackendData()
+  }, [isAuthenticated, user?.id])
+
+  // Função para salvar onboarding completo no backend
+  const saveFullOnboardingToBackend = React.useCallback(async () => {
+    if (!user?.id) return
+    try {
+      // 1. Salva Profile
+      await upsertProfile(user.id, {
+        nome_preferido: identity.preferredName,
+        nome_social: identity.socialName,
+        nome_registro: identity.legalName,
+        genero: identity.genderIdentity,
+        orientacao: identity.sexualOrientation,
+        descricao_identidade: identity.genderCustomDescription,
+        dia_a_dia: dailyRoutine.workStudyRoutine,
+        rotina_livre: dailyRoutine.freeTimeRoutine,
+        situacoes_risco: userRiskSituations,
+        consentimento_lgpd: true,
+        consentimento_lgpd_data: new Date().toISOString(),
+      })
+
+      // 2. Salva Contato de Emergência
+      if (contact.name && contact.phone) {
+        await upsertEmergencyContact(user.id, {
+          nome: contact.name,
+          telefone: contact.phone,
+          ja_avisou: contact.hasConsent,
+        })
+      }
+
+      // 3. Salva Substâncias
+      for (const h of habits) {
+        await createUserSubstance(user.id, {
+          tipo: h.name,
+          objetivo: h.goalType === 'parar' ? 'parar' : 'reduzir',
+          meta_dia_texto: h.dailyGoalCustom,
+          meta_dia_numero: h.dailyLimit,
+          melhor_sequencia: h.bestStreakDays,
+          data_inicio: h.startDate || new Date().toISOString(),
+          ativo: true,
+        })
+      }
+    } catch {
+      // ignore
+    }
+  }, [user?.id, identity, dailyRoutine, userRiskSituations, contact, habits])
+
+  // Função para importar dados locais gentilmente
+  const importLocalDataToBackend = React.useCallback(async () => {
+    if (!user?.id) return
+    setIsImporting(true)
+    try {
+      await saveFullOnboardingToBackend()
+      setHasLocalDataToImport(false)
+      setLastToastMessage('Seus registros foram guardados com segurança na sua conta.')
+    } catch {
+      setLastToastMessage('Não deu para sincronizar tudo agora. Tenta de novo em instantes.')
+    } finally {
+      setIsImporting(false)
+    }
+  }, [user?.id, saveFullOnboardingToBackend])
 
   // Nome dinâmico para saudações e exibição: prioriza preferredName -> socialName -> legalName
   const userGreetingName = React.useMemo(() => {
@@ -895,8 +1168,18 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       recordCheckinDone,
       recordHonestEpisode,
       clearToast,
+      isDemoUser,
+      hasLocalDataToImport,
+      isImporting,
+      importLocalDataToBackend,
+      saveFullOnboardingToBackend,
     }),
     [
+      isDemoUser,
+      hasLocalDataToImport,
+      isImporting,
+      importLocalDataToBackend,
+      saveFullOnboardingToBackend,
       habits,
       activeHabitId,
       setActiveHabitId,

@@ -42,7 +42,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function Diario() {
-  const { techniqueMetrics, habits, cigaretteLogs, episodeLogs } = useRecomecaStore()
+  const { techniqueMetrics, habits, cigaretteLogs, episodeLogs, isDemoUser } = useRecomecaStore()
 
   // Converte o Record de dias mockados em array ordenado
   const calendarDaysList = React.useMemo(() => {
@@ -304,6 +304,26 @@ export default function Diario() {
       />
 
       <div className="px-4 py-4 space-y-6">
+        {/* Aviso de modo demonstração quando aplicável */}
+        {isDemoUser && (
+          <div className="p-3 rounded-2xl bg-[#FDFAF5] dark:bg-[#202723] border border-[#7FBFA8]/40 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-full bg-[#E8A84C]/20 text-[#E8A84C] font-bold text-[10px] uppercase">
+                Demonstração
+              </span>
+              <span className="text-[#6A7A72] dark:text-[#A0B0A7]">
+                Visualizando dados de exemplo da usuária Camila
+              </span>
+            </div>
+            <Link
+              to="/login"
+              className="font-bold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline"
+            >
+              Entrar / Salvar meus dados →
+            </Link>
+          </div>
+        )}
+
         {/* =============================================================
             SELETOR DE VISÃO: MENSAL vs SEMANAL
            ============================================================= */}

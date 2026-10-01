@@ -135,6 +135,7 @@ export default function Registrar() {
   // Bloco do recibo: foto OU manual
   const [receiptMode, setReceiptMode] = React.useState<'manual' | 'foto'>('manual')
   const [photoPreview, setPhotoPreview] = React.useState<string | null>(null)
+  const [receiptFile, setReceiptFile] = React.useState<File | null>(null)
   const [spentAmount, setSpentAmount] = React.useState<string>('75.00')
   const [arrivalTime, setArrivalTime] = React.useState<string>('20:00')
   const [departureTime, setDepartureTime] = React.useState<string>('23:00')
@@ -191,6 +192,7 @@ export default function Registrar() {
     if (file) {
       const url = URL.createObjectURL(file)
       setPhotoPreview(url)
+      setReceiptFile(file)
     }
   }
 
@@ -263,22 +265,27 @@ export default function Registrar() {
           }
         : undefined
 
-    recordHonestEpisode(selectedSubstance, cigCount, {
-      time: episodeTime,
-      amountDescription: isTobaccoSelected
-        ? `${cigaretteQuantity} ${cigaretteInputMode} (${finalCigContext})`
-        : isAlcoholSelected
-          ? `${alcoholType} • ${finalAlcoholUnits}`
-          : `${finalUsed || amountUsed || 'Uso registrado'} (${usageDuration})`,
-      mood,
-      triggers: selectedTriggers,
-      freeText,
-      whatHappenedBefore,
-      whatHappenedAfter: consequencesText || 'Registrado com honestidade e calma.',
-      cravingTime: hadCravingBefore === 'sim' ? cravingTime : undefined,
-      receipt: receiptData,
-      details,
-    })
+    recordHonestEpisode(
+      selectedSubstance,
+      cigCount,
+      {
+        time: episodeTime,
+        amountDescription: isTobaccoSelected
+          ? `${cigaretteQuantity} ${cigaretteInputMode} (${finalCigContext})`
+          : isAlcoholSelected
+            ? `${alcoholType} • ${finalAlcoholUnits}`
+            : `${finalUsed || amountUsed || 'Uso registrado'} (${usageDuration})`,
+        mood,
+        triggers: selectedTriggers,
+        freeText,
+        whatHappenedBefore,
+        whatHappenedAfter: consequencesText || 'Registrado com honestidade e calma.',
+        cravingTime: hadCravingBefore === 'sim' ? cravingTime : undefined,
+        receipt: receiptData,
+        details,
+      },
+      receiptFile,
+    )
 
     setIsSuccessModalOpen(true)
   }

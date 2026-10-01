@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T18:54:43.487Z",
+  "generatedAt": "2026-10-01T06:31:21.859Z",
   "collections": [
     {
       "name": "users",
@@ -43,6 +43,961 @@
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
       ]
+    },
+    {
+      "name": "profiles",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "nome_preferido",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome_social",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome_registro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "genero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "orientacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "descricao_identidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dia_a_dia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "momentos_risco",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "o_que_ajuda",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rotina_livre",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dark_mode",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "meta_dia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "consentimento_lgpd",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "consentimento_lgpd_data",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "situacoes_risco",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_profiles_owner ON profiles (owner)"]
+    },
+    {
+      "name": "emergency_contacts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ja_avisou",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_contacts_owner ON emergency_contacts (owner)"]
+    },
+    {
+      "name": "user_substances",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "tipo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "objetivo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "uso_inicial",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_inicio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "meta_dia_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "meta_dia_numero",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "melhor_sequencia",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_substances_owner ON user_substances (owner)"]
+    },
+    {
+      "name": "use_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "substancia",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "user_substances"
+        },
+        {
+          "name": "substancia_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quantidade",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "unidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_hora",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "contexto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "custo",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quanto_comprou",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quanto_usou",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tempo_uso",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dividiu",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_use_logs_owner_date ON use_logs (owner, data_hora DESC)"]
+    },
+    {
+      "name": "episodes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "substancia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "humor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "gatilho",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "antes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "depois",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_gasto",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hora_chegada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hora_saida",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "itens",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recibo_foto",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_hora",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "craving_time",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "details_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_episodes_owner ON episodes (owner, created DESC)"]
+    },
+    {
+      "name": "diary_entries",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "data",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "humor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_dia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_diary_owner_date ON diary_entries (owner, data DESC)"]
+    },
+    {
+      "name": "cravings",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "data_hora",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "situacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tecnica_usada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resultado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "duracao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "substancia_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_cravings_owner ON cravings (owner, created DESC)"]
+    },
+    {
+      "name": "plan_tasks",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "texto",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "explicacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "custom",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_plan_tasks_owner ON plan_tasks (owner)"]
+    },
+    {
+      "name": "plan_completions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "tarefa",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "plan_tasks"
+        },
+        {
+          "name": "tarefa_id_string",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tarefa_titulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hora",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_plan_comp_owner_date ON plan_completions (owner, data)"]
+    },
+    {
+      "name": "med_checkins",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "receitado_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "receitado_horario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "receitado_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tomado_hoje",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mais_para_mesmo_efeito",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "antes_do_horario",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "perdeu_caixa",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "varios_medicos",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "semana_ref",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avisou",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_med_checkins_owner ON med_checkins (owner)"]
+    },
+    {
+      "name": "caregiver_links",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && owner = @request.auth.id",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "permissoes",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "aceito",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_caregivers_owner ON caregiver_links (owner)"]
+    },
+    {
+      "name": "support_resources",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "link",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_support_ordem ON support_resources (ordem)"]
     }
   ]
 }

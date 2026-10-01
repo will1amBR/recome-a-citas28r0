@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { AuthProvider } from '@/lib/authContext'
 import { RecomecaProvider } from '@/lib/recomecaStore'
 import Index from './pages/Index'
 import NotFound from './pages/NotFound'
@@ -16,33 +17,37 @@ import SOS from './pages/SOS'
 import Apoio from './pages/Apoio'
 import Perfil from './pages/Perfil'
 import Plano from './pages/Plano'
+import Login from './pages/Login'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
 // AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
 
 const App = () => (
   <BrowserRouter>
-    <RecomecaProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/hoje" element={<Hoje />} />
-            <Route path="/plano" element={<Plano />} />
-            <Route path="/registrar" element={<Registrar />} />
-            <Route path="/trocar" element={<Trocar />} />
-            <Route path="/diario" element={<Diario />} />
-            <Route path="/sos" element={<SOS />} />
-            <Route path="/apoio" element={<Apoio />} />
-            <Route path="/perfil" element={<Perfil />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
-    </RecomecaProvider>
+    <AuthProvider>
+      <RecomecaProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/hoje" element={<Hoje />} />
+              <Route path="/plano" element={<Plano />} />
+              <Route path="/registrar" element={<Registrar />} />
+              <Route path="/trocar" element={<Trocar />} />
+              <Route path="/diario" element={<Diario />} />
+              <Route path="/sos" element={<SOS />} />
+              <Route path="/apoio" element={<Apoio />} />
+              <Route path="/perfil" element={<Perfil />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
+      </RecomecaProvider>
+    </AuthProvider>
   </BrowserRouter>
 )
 

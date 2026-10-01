@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RecomecaButton, RecomecaCard, RecomecaInput, ProgressBar } from '@/components/recomeca'
 import { useRecomecaStore } from '@/lib/recomecaStore'
+import { useAuth } from '@/lib/authContext'
 import { ONBOARDING_SUBSTANCES, DEFAULT_RISK_SITUATIONS } from '@/lib/mockData'
 import {
   ArrowLeft,
@@ -86,6 +87,7 @@ const HELPFUL_OPTIONS = [
 
 export default function Onboarding() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const {
     contact,
     updateContact,
@@ -95,6 +97,7 @@ export default function Onboarding() {
     updateIdentity,
     dailyRoutine,
     updateDailyRoutine,
+    saveFullOnboardingToBackend,
   } = useRecomecaStore()
 
   // Etapa atual: 1 a 7 (com novas etapas: 2: Quem é você, 3: Hábitos do dia a dia)
@@ -355,6 +358,9 @@ export default function Onboarding() {
       persistRoutineData()
       if (selectedRisks.length > 0) {
         setUserRiskSituations(selectedRisks)
+      }
+      if (isAuthenticated) {
+        saveFullOnboardingToBackend().catch(() => {})
       }
       navigate('/hoje')
     }

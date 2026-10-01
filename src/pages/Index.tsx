@@ -47,9 +47,9 @@ export default function Index() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <Link to="/hoje" className="hidden min-[480px]:inline-block">
+            <Link to="/login" className="hidden min-[480px]:inline-block">
               <RecomecaButton variant="secondary" size="sm">
-                Abrir app
+                Entrar
               </RecomecaButton>
             </Link>
             <Link to="/onboarding">
@@ -58,7 +58,7 @@ export default function Index() {
                 size="sm"
                 rightIcon={<ArrowRight className="w-4 h-4" />}
               >
-                Começar
+                Quero recomeçar
               </RecomecaButton>
             </Link>
           </div>
@@ -105,12 +105,12 @@ export default function Index() {
                 fullWidth
                 rightIcon={<ArrowRight className="w-5 h-5" />}
               >
-                Começar agora
+                Quero recomeçar
               </RecomecaButton>
             </Link>
-            <Link to="/hoje" className="w-full sm:w-auto flex-1">
+            <Link to="/login" className="w-full sm:w-auto flex-1">
               <RecomecaButton variant="secondary" size="lg" fullWidth>
-                Ver demonstração
+                Entrar na minha conta
               </RecomecaButton>
             </Link>
           </div>

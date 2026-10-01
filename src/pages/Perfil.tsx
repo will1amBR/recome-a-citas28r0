@@ -8,6 +8,7 @@ import {
   LegalNoticeFooter,
 } from '@/components/recomeca'
 import { useRecomecaStore } from '@/lib/recomecaStore'
+import { useAuth } from '@/lib/authContext'
 import { MOCK_USER } from '@/lib/mockData'
 import {
   User,
@@ -26,10 +27,14 @@ import {
   Check,
   PenLine,
   Smile,
+  LogOut,
+  LogIn,
+  UploadCloud,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function Perfil() {
+  const { isAuthenticated, user, logout } = useAuth()
   const {
     contact,
     habits,
@@ -39,6 +44,10 @@ export default function Perfil() {
     userGreetingName,
     dailyRoutine,
     updateDailyRoutine,
+    isDemoUser,
+    hasLocalDataToImport,
+    importLocalDataToBackend,
+    isImporting,
   } = useRecomecaStore()
 
   // Estado para edição inline da meta do dia de cada vício
@@ -191,30 +200,91 @@ export default function Perfil() {
 
       <div className="px-4 py-4 space-y-6">
         {/* =============================================================
-            1. CABEÇALHO DO PERFIL COM NOME REAL / PREFERIDO
+            1. CABEÇALHO DO PERFIL COM NOME REAL / PREFERIDO & CONTA
            ============================================================= */}
         <section className="space-y-2">
+          {/* Card de aviso se for usuário de demonstração */}
+          {isDemoUser && (
+            <div className="p-3 rounded-2xl bg-[#FDFAF5] dark:bg-[#202723] border border-[#7FBFA8]/50 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-[#E8A84C]/20 text-[#E8A84C] font-bold text-[10px] uppercase">
+                  Demonstração
+                </span>
+                <span className="text-[#6A7A72] dark:text-[#A0B0A7]">
+                  Explorando com a usuária fictícia Camila
+                </span>
+              </div>
+              <Link
+                to="/login"
+                className="text-xs font-bold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline flex items-center gap-1 shrink-0"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Entrar / Cadastrar</span>
+              </Link>
+            </div>
+          )}
+
+          {/* Convite gentil de importação se houver dados locais */}
+          {isAuthenticated && hasLocalDataToImport && (
+            <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8] space-y-2 animate-fade-in">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE]">
+                <UploadCloud className="w-4 h-4 text-[#4CAF7D]" />
+                <span>Quer que a gente leve o que você já registrou neste aparelho?</span>
+              </div>
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                Você tem respostas de onboarding gravadas neste navegador. Podemos sincronizar tudo
+                na sua conta segura com um toque.
+              </p>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={importLocalDataToBackend}
+                  disabled={isImporting}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#7FBFA8] text-white text-xs font-bold hover:bg-[#6DA98F] transition-colors"
+                >
+                  {isImporting ? 'Salvando...' : 'Sim, sincronizar agora'}
+                </button>
+              </div>
+            </div>
+          )}
+
           <RecomecaCard variant="highlight" padding="lg" className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-[#7FBFA8] dark:bg-[#8FCCAE] text-[#2F4A3E] dark:text-[#1C2420] font-bold text-2xl flex items-center justify-center shrink-0 shadow-sm">
-              {(userGreetingName || MOCK_USER.name).charAt(0).toUpperCase()}
+              {(userGreetingName || (isAuthenticated ? user?.email : MOCK_USER.name) || 'U')
+                .charAt(0)
+                .toUpperCase()}
             </div>
 
             <div className="space-y-0.5 flex-1 min-w-0">
               <h2 className="text-lg font-bold text-[#2F4A3E] dark:text-[#E8EFE9] truncate">
-                {userGreetingName || MOCK_USER.name}
+                {userGreetingName || (isAuthenticated ? user?.name || user?.email : MOCK_USER.name)}
               </h2>
               {identity.socialName && (
                 <p className="text-xs text-[#4CAF7D] dark:text-[#8FCCAE] font-semibold truncate">
                   Nome social: {identity.socialName}
                 </p>
               )}
-              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
-                Membro desde {MOCK_USER.sinceYear} • ID Anônimo: {MOCK_USER.anonymousId}
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] truncate">
+                {isAuthenticated
+                  ? `Conta conectada • ${user?.email}`
+                  : `Membro desde ${MOCK_USER.sinceYear} • ID Anônimo: ${MOCK_USER.anonymousId}`}
               </p>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4CAF7D] pt-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF7D]" />
-                Espaço individual protegido
-              </span>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4CAF7D]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF7D]" />
+                  {isAuthenticated ? 'Banco de dados ativo' : 'Espaço individual protegido'}
+                </span>
+                {isAuthenticated && (
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="text-[11px] font-bold text-[#D96C68] hover:underline ml-auto flex items-center gap-1"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    <span>Sair da conta</span>
+                  </button>
+                )}
+              </div>
             </div>
           </RecomecaCard>
         </section>

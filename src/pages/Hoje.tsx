@@ -64,6 +64,7 @@ export default function Hoje() {
     lastToastMessage,
     clearToast,
     userGreetingName,
+    isDemoUser,
   } = useRecomecaStore()
 
   // Vício atualmente ativo para check-in e registros em /hoje
@@ -184,19 +185,46 @@ export default function Hoje() {
         </aside>
       )}
 
+      {/* Aviso acolhedor se estiver navegando em demonstração */}
+      {isDemoUser && (
+        <div className="mx-4 mt-2 p-2.5 rounded-2xl bg-[#FDFAF5] dark:bg-[#202723] border border-[#7FBFA8]/40 flex items-center justify-between text-xs animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full bg-[#E8A84C]/20 text-[#E8A84C] font-bold text-[10px] uppercase">
+              Demonstração
+            </span>
+            <span className="text-[#6A7A72] dark:text-[#A0B0A7]">Camila (usuária de exemplo)</span>
+          </div>
+          <Link
+            to="/login"
+            className="font-bold text-[#7FBFA8] dark:text-[#8FCCAE] hover:underline text-[11px]"
+          >
+            Salvar meus dados →
+          </Link>
+        </div>
+      )}
+
       {/* Header Mobile Leve */}
       <ScreenHeader
         title={`Olá, ${userGreetingName || MOCK_USER.preferredGreeting}`}
         subtitle="Um dia de cada vez. Seu progresso continua seguro."
         rightAction={
-          <button
-            type="button"
-            onClick={handleNextPhrase}
-            aria-label="Ver outra frase de incentivo"
-            className="w-9 h-9 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center justify-center hover:bg-[#7FBFA8]/20 transition-colors touch-target"
-          >
-            <Sparkles className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleNextPhrase}
+              aria-label="Ver outra frase de incentivo"
+              className="w-9 h-9 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center justify-center hover:bg-[#7FBFA8]/20 transition-colors touch-target"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+            <Link
+              to="/perfil"
+              title="Meu perfil e configurações"
+              className="w-9 h-9 rounded-2xl bg-[#7FBFA8] text-white flex items-center justify-center font-bold text-xs"
+            >
+              {(userGreetingName || 'C').charAt(0).toUpperCase()}
+            </Link>
+          </div>
         }
       />
 
