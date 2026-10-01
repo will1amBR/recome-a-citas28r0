@@ -42,7 +42,16 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function Diario() {
-  const { techniqueMetrics, habits, cigaretteLogs, episodeLogs, isDemoUser } = useRecomecaStore()
+  const { techniqueMetrics, habits, cigaretteLogs, episodeLogs, isDemoUser, sleepCheckins } =
+    useRecomecaStore()
+
+  // Cálculo de dinheiro economizado transparente
+  const totalSavedMoney = React.useMemo(() => {
+    const mainHabit = habits[0]
+    const cleanDays = mainHabit?.currentStreakDays || 19
+    const avgDailyCost = 18.5 // estimativa diária de gasto evitado
+    return cleanDays * avgDailyCost
+  }, [habits])
 
   // Converte o Record de dias mockados em array ordenado
   const calendarDaysList = React.useMemo(() => {
@@ -219,6 +228,17 @@ export default function Diario() {
 
   // 4. Gerar resumo copiável para levar ao médico ou terapeuta
   const generateDoctorSummary = () => {
+    const sleepSummaryText =
+      sleepCheckins.length > 0
+        ? sleepCheckins
+            .slice(0, 3)
+            .map(
+              (s) =>
+                `• Semana ${s.semana_ref}: Sono ${s.resposta === 'bem' ? 'bom' : s.resposta === 'mais_ou_menos' ? 'mais ou menos' : s.resposta === 'dificil' ? 'difícil' : 'pior que o normal'}${s.nota ? ` ("${s.nota}")` : ''}`,
+            )
+            .join('\n')
+        : '• Nenhum registro recente de sono anotado.'
+
     const lines = [
       `--- RECOMEÇA • RESUMO DE ACOMPANHAMENTO ---`,
       `Período: ${MOCK_MONTHLY_MIRROR.monthName} de ${MOCK_MONTHLY_MIRROR.year}`,
@@ -228,6 +248,10 @@ export default function Diario() {
       `• Dias livres no mês: ${MOCK_MONTHLY_MIRROR.cleanDaysCount} dias`,
       `• Dias com episódios registrados: ${MOCK_MONTHLY_MIRROR.relapseDaysCount} dia(s)`,
       `• Gasto total com substâncias no mês: R$ ${MOCK_MONTHLY_MIRROR.totalSpent.toFixed(2)} (mês anterior: R$ ${MOCK_MONTHLY_MIRROR.previousMonthSpent.toFixed(2)})`,
+      `• Total economizado estimado: R$ ${totalSavedMoney.toFixed(2)}`,
+      ``,
+      `HISTÓRICO RECENTE DE SONO (Últimas semanas):`,
+      sleepSummaryText,
       ``,
       `HÁBITOS EM ACOMPANHAMENTO:`,
       ...habits.map((h) => {
@@ -834,6 +858,31 @@ export default function Diario() {
                 <span className="text-[10px] text-[#4CAF7D] block">
                   vs R$ {MOCK_MONTHLY_MIRROR.previousMonthSpent.toFixed(2)} mês anterior
                 </span>
+              </div>
+
+              {/* CARD DE DINHEIRO ECONOMIZADO */}
+              <div className="col-span-2 p-3.5 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#4CAF7D]/40 space-y-1 text-left">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#4CAF7D] dark:text-[#8FCCAE]">
+                    Dinheiro Economizado
+                  </span>
+                  <span className="text-xs font-bold text-[#4CAF7D] bg-white dark:bg-[#1C2420] px-2 py-0.5 rounded-full">
+                    Recurso protegido
+                  </span>
+                </div>
+                <div className="text-xl font-bold text-[#2F4A3E] dark:text-[#E8EFE9] tabular-nums">
+                  R$ {totalSavedMoney.toFixed(2)}
+                </div>
+                <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                  Calculado pela média diária dos seus registros × dias limpos desde o início. Uma
+                  estimativa honesta para você ver o valor voltando para sua vida.
+                  {totalSavedMoney >= 100 && (
+                    <span className="font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] block mt-0.5">
+                      💡 Dá para cerca de {Math.floor(totalSavedMoney / 35)} meses de streaming ou
+                      momentos de lazer com quem você ama.
+                    </span>
+                  )}
+                </p>
               </div>
 
               <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] text-center">

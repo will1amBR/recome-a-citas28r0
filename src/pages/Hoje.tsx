@@ -40,7 +40,15 @@ import {
   Smile,
   Zap,
   Volume2,
+  Moon,
+  AlertCircle,
+  PiggyBank,
+  Award,
+  Stethoscope,
+  X,
+  Lightbulb,
 } from 'lucide-react'
+import { SoundLibraryModal } from '@/components/recomeca/SoundLibraryModal'
 import { cn } from '@/lib/utils'
 
 export default function Hoje() {
@@ -65,7 +73,147 @@ export default function Hoje() {
     clearToast,
     userGreetingName,
     isDemoUser,
+    planIntentions,
+    userRiskSituations,
+    sleepCheckins,
+    addSleepCheckin,
+    medicalAppointment,
+    hideRiskDaysCard,
+    setHideRiskDaysCard,
+    celebratedMilestoneKeys,
+    celebrateMilestone,
+    techniqueMetrics,
+    episodeLogs,
   } = useRecomecaStore()
+
+  // Estado da biblioteca de sons para acolhimento do sono
+  const [isSleepSoundModalOpen, setIsSleepSoundModalOpen] = React.useState(false)
+
+  // Estado do Check-in de sono da semana atual
+  const now = new Date()
+  const currentWeekRef = `${now.getFullYear()}-W${Math.ceil((now.getDate() + 6) / 7)}`
+  const currentWeekSleepDone = sleepCheckins.find((s) => s.semana_ref === currentWeekRef)
+  const [sleepAnswerInput, setSleepAnswerInput] = React.useState<
+    'bem' | 'mais_ou_menos' | 'dificil' | 'pior' | null
+  >(currentWeekSleepDone ? currentWeekSleepDone.resposta : null)
+  const [sleepNoteInput, setSleepNoteInput] = React.useState(currentWeekSleepDone?.nota || '')
+  const [sleepDismissedThisSession, setSleepDismissedThisSession] = React.useState(false)
+
+  // Detecção de Dias de Risco com Carinho
+  const dayOfWeek = now.getDay() // 0 = Domingo, 5 = Sexta, 6 = Sábado
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6
+
+  // Feriados brasileiros principais (mês-dia)
+  const todayMMDD = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const BRAZILIAN_HOLIDAYS: Record<string, string> = {
+    '01-01': 'Ano Novo',
+    '04-21': 'Tiradentes',
+    '05-01': 'Dia do Trabalho',
+    '09-07': 'Independência do Brasil',
+    '10-12': 'Nossa Senhora Aparecida',
+    '11-02': 'Finados',
+    '11-15': 'Proclamação da República',
+    '11-20': 'Consciência Negra',
+    '12-25': 'Natal',
+  }
+  const isHoliday = Boolean(BRAZILIAN_HOLIDAYS[todayMMDD])
+  const holidayName = BRAZILIAN_HOLIDAYS[todayMMDD]
+
+  // Aniversário da última recaída / episódio anterior
+  const latestEpDate = episodeLogs[0]?.date
+  const isAnniversaryOfRelapse = Boolean(
+    latestEpDate &&
+    latestEpDate.slice(5) === todayMMDD &&
+    latestEpDate.slice(0, 4) !== String(now.getFullYear()),
+  )
+
+  const isRiskDay = isWeekend || isHoliday || isAnniversaryOfRelapse
+  const riskDayReason = isHoliday
+    ? `Hoje é feriado (${holidayName})`
+    : isAnniversaryOfRelapse
+      ? 'Hoje faz aniversário de um episódio anterior que você superou'
+      : 'Fim de semana costuma ter quebra de rotina'
+
+  // Dinheiro economizado transparente
+  const mainHabit = habits[0]
+  const cleanDays = mainHabit?.currentStreakDays || 19
+  const avgDailyCost = 18.5
+  const totalSavedMoney = cleanDays * avgDailyCost
+
+  // Consulta médica marcada para hoje?
+  const todayDateStr = now.toISOString().slice(0, 10)
+  const isMedicalAppointmentToday = medicalAppointment?.date === todayDateStr
+
+  // Celebração de Marcos Calma (dias: 21, 30, 60, 90, 180, 365 / dinheiro: 100, 500, 1000 / 10 fissuras)
+  const [activeCelebrationModal, setActiveCelebrationModal] = React.useState<{
+    tipo: 'dias_sobrio' | 'dinheiro_economizado' | 'ondas_fissura'
+    substancia_tipo?: string
+    valor: number
+    chave_unica: string
+    titulo: string
+    mensagem: string
+  } | null>(null)
+
+  React.useEffect(() => {
+    // 1. Verificar dias sóbrios
+    const DAYS_MILESTONES = [21, 30, 60, 90, 180, 365]
+    for (const habit of habits) {
+      for (const d of DAYS_MILESTONES) {
+        if (habit.currentStreakDays >= d) {
+          const key = `days-${habit.name}-${d}`
+          if (!celebratedMilestoneKeys.includes(key)) {
+            setActiveCelebrationModal({
+              tipo: 'dias_sobrio',
+              substancia_tipo: habit.name,
+              valor: d,
+              chave_unica: key,
+              titulo: `${d} dias livres de ${habit.name.toLowerCase()}`,
+              mensagem: `${d} dias. Você construiu isso com paciência. Um dia de cada vez.`,
+            })
+            return
+          }
+        }
+      }
+    }
+
+    // 2. Verificar dinheiro economizado
+    const MONEY_MILESTONES = [100, 500, 1000]
+    for (const m of MONEY_MILESTONES) {
+      if (totalSavedMoney >= m) {
+        const key = `money-${m}`
+        if (!celebratedMilestoneKeys.includes(key)) {
+          setActiveCelebrationModal({
+            tipo: 'dinheiro_economizado',
+            valor: m,
+            chave_unica: key,
+            titulo: `Mais de R$ ${m} economizados`,
+            mensagem: `Você já deixou de gastar mais de R$ ${m} desde o início do seu recomeço. Esse recurso voltou para a sua vida e para quem você ama.`,
+          })
+          return
+        }
+      }
+    }
+
+    // 3. Verificar 10 ondas de fissura passadas sem usar
+    const passedCravingsCount = techniqueMetrics.reduce(
+      (acc, t) => acc + (t.passedWithoutUsingCount || 0),
+      0,
+    )
+    if (passedCravingsCount >= 10) {
+      const key = 'cravings-passed-10'
+      if (!celebratedMilestoneKeys.includes(key)) {
+        setActiveCelebrationModal({
+          tipo: 'ondas_fissura',
+          valor: 10,
+          chave_unica: key,
+          titulo: '10 ondas de vontade superadas',
+          mensagem:
+            'Você navegou por 10 ondas de fissura sem usar. Cada vez que a onda passou, sua força cresceu.',
+        })
+        return
+      }
+    }
+  }, [habits, totalSavedMoney, techniqueMetrics, celebratedMilestoneKeys])
 
   // Vício atualmente ativo para check-in e registros em /hoje
   const activeHabit = React.useMemo(() => {
@@ -229,6 +377,258 @@ export default function Hoje() {
       />
 
       <div className="px-4 py-4 space-y-6">
+        {/* =============================================================
+            LEMBRETE DE CONSULTA MÉDICA (SE HOJE TEM CONSULTA)
+           ============================================================= */}
+        {isMedicalAppointmentToday && (
+          <section aria-label="Lembrete da consulta médica de hoje">
+            <RecomecaCard
+              variant="highlight"
+              padding="md"
+              className="space-y-2 border-l-4 border-l-[#7FBFA8] shadow-sm animate-fade-in"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  <Stethoscope className="w-4 h-4 text-[#7FBFA8]" />
+                  <span>
+                    Hoje tem consulta médica
+                    {medicalAppointment.time ? ` às ${medicalAppointment.time}` : ''}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D]">
+                  Cuidado
+                </span>
+              </div>
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                {medicalAppointment.doctorName ? `Com ${medicalAppointment.doctorName}. ` : ''}
+                Hoje tem consulta. Quer levar seu resumo com o histórico do que você registrou?
+              </p>
+              <div className="pt-1 flex items-center justify-end">
+                <Link
+                  to="/diario"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7FBFA8] hover:bg-[#6DA98F] text-white text-xs font-bold transition-colors touch-target"
+                >
+                  <span>Ver e copiar resumo para o médico →</span>
+                </Link>
+              </div>
+            </RecomecaCard>
+          </section>
+        )}
+
+        {/* =============================================================
+            DIAS DE RISCO SINALIZADOS COM CARINHO (FIM DE SEMANA / FERIADO / RECAÍDA ANTERIOR)
+           ============================================================= */}
+        {isRiskDay && !hideRiskDaysCard && (
+          <section aria-label="Companhia em dia de risco">
+            <RecomecaCard
+              variant="default"
+              padding="md"
+              className="space-y-2.5 bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/50 shadow-xs animate-fade-in"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  <AlertCircle className="w-4 h-4 text-[#7FBFA8]" />
+                  <span>Dia mais delicado • Estamos com você</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setHideRiskDaysCard(true)}
+                  className="text-[10px] text-[#6A7A72] hover:text-[#2F4A3E] dark:text-[#A0B0A7] p-1"
+                  title="Esconder este cartão"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed">
+                Hoje costuma ser um dia mais difícil ({riskDayReason.toLowerCase()}). Seu plano e
+                sua rede estão à mão. Você não está só.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Link
+                  to="/trocar"
+                  className="text-xs font-bold px-3 py-1.5 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8]/20 transition-colors"
+                >
+                  Ver ferramentas de troca →
+                </Link>
+                <Link
+                  to="/apoio"
+                  className="text-xs font-bold px-3 py-1.5 rounded-xl bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9] hover:border-[#7FBFA8] transition-colors"
+                >
+                  Minha rede de apoio →
+                </Link>
+              </div>
+            </RecomecaCard>
+          </section>
+        )}
+
+        {/* =============================================================
+            PLANO SE-ENTÃO PELA MANHÃ SE DIA DE RISCO MARCADO NO ONBOARDING
+           ============================================================= */}
+        {isRiskDay && planIntentions.length > 0 && (
+          <section aria-label="Seu plano de proteção para hoje">
+            <div className="p-3.5 rounded-2xl bg-[#E8F3EC] dark:bg-[#2A3831] border border-[#7FBFA8]/40 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE]">
+                <Lightbulb className="w-4 h-4 text-[#4CAF7D]" />
+                <span>Seu Plano Se–Então para o dia de hoje:</span>
+              </div>
+              <p className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed">
+                <strong>Se</strong> {planIntentions[0].se_situacao}, <strong>então</strong>{' '}
+                {planIntentions[0].entao_acao}.
+              </p>
+              <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] block italic">
+                Ter a intenção combinada com você mesmo protege suas escolhas hoje.
+              </span>
+            </div>
+          </section>
+        )}
+
+        {/* =============================================================
+            CHECK-IN DE SONO SEMANAL (Cartão Calmo, Dispensável)
+           ============================================================= */}
+        {!sleepDismissedThisSession && (
+          <section aria-label="Check-in semanal de sono">
+            <RecomecaCard
+              variant="default"
+              padding="md"
+              className="space-y-3 border-l-4 border-l-[#7FBFA8]"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center">
+                    <Moon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                      Check-in Semanal
+                    </span>
+                    <h3 className="text-xs sm:text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                      Como foi seu sono essa semana?
+                    </h3>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSleepDismissedThisSession(true)}
+                  className="text-xs text-[#6A7A72] hover:text-[#2F4A3E] dark:text-[#A0B0A7] p-1"
+                  aria-label="Dispensar check-in de sono por agora"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                Dormir bem protege o recomeço e acalma a mente. Como você sentiu seu descanso nos
+                últimos dias?
+              </p>
+
+              {/* 4 opções acolhedoras */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {[
+                  { key: 'bem', label: 'Bem' },
+                  { key: 'mais_ou_menos', label: 'Mais ou menos' },
+                  { key: 'dificil', label: 'Difícil' },
+                  { key: 'pior', label: 'Pior que o normal' },
+                ].map((opt) => {
+                  const isSelected = sleepAnswerInput === opt.key
+                  return (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={async () => {
+                        const ans = opt.key as 'bem' | 'mais_ou_menos' | 'dificil' | 'pior'
+                        setSleepAnswerInput(ans)
+                        await addSleepCheckin(ans, sleepNoteInput)
+                      }}
+                      className={cn(
+                        'py-2 px-2.5 rounded-xl text-xs font-bold border transition-all touch-target text-center',
+                        isSelected
+                          ? 'bg-[#7FBFA8] text-white border-[#7FBFA8]'
+                          : 'bg-[#FDFAF5] dark:bg-[#1C2420] border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9] hover:border-[#7FBFA8]',
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Se respondeu difícil ou pior: mensagem acolhedora ligando sono e vontade + sugestão de som / médico */}
+              {(sleepAnswerInput === 'dificil' || sleepAnswerInput === 'pior') && (
+                <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/40 space-y-2 animate-fade-in">
+                  <div className="text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center gap-1.5">
+                    <Heart className="w-4 h-4 text-[#7FBFA8]" />
+                    <span>Dormir mal deixa a vontade mais forte. Não é fraqueza.</span>
+                  </div>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                    Quando o cérebro está cansado, o autocontrole gasta mais energia. Cuidar do seu
+                    repouso é uma das maiores proteções contra recaídas.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsSleepSoundModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#7FBFA8] hover:bg-[#6DA98F] text-white text-xs font-bold transition-colors touch-target"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Ouvir som para dormir (chuva ou ruído marrom)</span>
+                    </button>
+                    <Link
+                      to="/apoio"
+                      className="text-[11px] font-bold text-[#4CAF7D] hover:underline"
+                    >
+                      Lembrete: converse com seu médico sobre o sono →
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </RecomecaCard>
+          </section>
+        )}
+
+        {/* =============================================================
+            DINHEIRO ECONOMIZADO (CARD CALMO EM /hoje)
+           ============================================================= */}
+        <section aria-label="Dinheiro economizado desde o início">
+          <RecomecaCard variant="highlight" padding="md" className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] flex items-center justify-center shrink-0">
+                  <PiggyBank className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                    Recurso que voltou
+                  </span>
+                  <h3 className="text-xs sm:text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Dinheiro Economizado
+                  </h3>
+                </div>
+              </div>
+
+              <span className="text-sm sm:text-base font-bold tabular-nums text-[#4CAF7D]">
+                ~ R$ {totalSavedMoney.toFixed(2)}
+              </span>
+            </div>
+
+            <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+              Você já deixou de gastar cerca de{' '}
+              <strong className="text-[#2F4A3E] dark:text-[#E8EFE9]">
+                R$ {totalSavedMoney.toFixed(2)}
+              </strong>{' '}
+              desde o início do seu acompanhamento ({cleanDays} dias limpos × média diária de gastos
+              evitados).
+            </p>
+
+            {totalSavedMoney >= 100 && (
+              <p className="text-[11px] font-medium text-[#2F4A3E] dark:text-[#8FCCAE] pt-0.5">
+                💡 Esse valor equivale a cerca de {Math.floor(totalSavedMoney / 35)} meses de um
+                serviço de streaming ou momentos de descanso real com quem importa.
+              </p>
+            )}
+          </RecomecaCard>
+        </section>
+
         {/* =============================================================
             SELETOR RÁPIDO DE VÍCIO EM /hoje QUANDO HOUVER MAIS DE UM
            ============================================================= */}
@@ -1308,6 +1708,71 @@ export default function Hoje() {
           })
         }}
       />
+
+      {/* MODAL DA BIBLIOTECA DE SONS PARA O SONO */}
+      <SoundLibraryModal open={isSleepSoundModalOpen} onOpenChange={setIsSleepSoundModalOpen} />
+
+      {/* OVERLAY SERENO DE CELEBRAÇÃO DE MARCO (CALMO, SEM ALARME) */}
+      {activeCelebrationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-sm p-6 rounded-3xl bg-[#FDFAF5] dark:bg-[#1C2420] border-2 border-[#7FBFA8] shadow-2xl space-y-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] flex items-center justify-center mx-auto shadow-sm">
+              <Award className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#7FBFA8] dark:text-[#8FCCAE]">
+                Celebração Serena
+              </span>
+              <h3 className="text-xl font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                {activeCelebrationModal.titulo}
+              </h3>
+            </div>
+
+            <p className="text-sm text-[#2F4A3E]/90 dark:text-[#E8EFE9]/90 leading-relaxed">
+              &ldquo;{activeCelebrationModal.mensagem}&rdquo;
+            </p>
+
+            <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const m = activeCelebrationModal
+                  setActiveCelebrationModal(null)
+                  await celebrateMilestone({
+                    tipo: m.tipo,
+                    substancia_tipo: m.substancia_tipo,
+                    valor: m.valor,
+                    chave_unica: m.chave_unica,
+                    registrado_diario: true,
+                  })
+                }}
+                className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#7FBFA8] hover:bg-[#6DA98F] text-white transition-all touch-target shadow-xs"
+              >
+                Guardar e registrar no diário
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const m = activeCelebrationModal
+                  setActiveCelebrationModal(null)
+                  await celebrateMilestone({
+                    tipo: m.tipo,
+                    substancia_tipo: m.substancia_tipo,
+                    valor: m.valor,
+                    chave_unica: m.chave_unica,
+                    registrado_diario: false,
+                  })
+                }}
+                className="w-full py-2 px-4 rounded-xl text-xs font-semibold text-[#6A7A72] hover:text-[#2F4A3E] dark:text-[#A0B0A7] transition-all"
+              >
+                Apenas continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

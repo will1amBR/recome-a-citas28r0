@@ -124,7 +124,16 @@ export interface GoodActionRecord {
   id: string
   title: string
   timestamp: string // HH:MM ou ISO
-  type: 'tecnica' | 'atividade' | 'checkin' | 'honestidade' | 'meta-mantida' | 'tarefa-plano'
+  type:
+    | 'tecnica'
+    | 'atividade'
+    | 'checkin'
+    | 'honestidade'
+    | 'meta-mantida'
+    | 'tarefa-plano'
+    | 'plano-se-entao'
+    | 'sono'
+    | 'marco'
   message: string // ex: "Feito. Você escolheu você."
 }
 

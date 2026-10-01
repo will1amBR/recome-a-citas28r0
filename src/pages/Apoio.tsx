@@ -28,11 +28,12 @@ import {
   Heart,
   UserCheck,
   UserPlus,
+  Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function Apoio() {
-  const { contact } = useRecomecaStore()
+  const { contact, medicalAppointment, updateMedicalAppointment } = useRecomecaStore()
   const [dbResources, setDbResources] = React.useState<SupportResourceData[]>([])
 
   React.useEffect(() => {
@@ -241,6 +242,90 @@ export default function Apoio() {
                 </Link>
               </div>
             )}
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            LEMBRETE DE PRÓXIMA CONSULTA MÉDICA
+           ============================================================= */}
+        <section aria-label="Próxima consulta médica" className="space-y-3">
+          <RecomecaCard
+            variant="highlight"
+            padding="md"
+            className="space-y-3 border-l-4 border-l-[#7FBFA8]"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#7FBFA8]" />
+                <h3 className="text-xs sm:text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Próxima Consulta Médica
+                </h3>
+              </div>
+              {medicalAppointment?.date && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D]">
+                  Agendada
+                </span>
+              )}
+            </div>
+
+            <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+              No dia da consulta, o Recomeça avisa você pela manhã com o resumo pronto para levar ao
+              seu médico.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Data da consulta
+                </label>
+                <input
+                  type="date"
+                  value={medicalAppointment?.date || ''}
+                  onChange={(e) =>
+                    updateMedicalAppointment({
+                      ...medicalAppointment,
+                      date: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Horário (opcional)
+                </label>
+                <input
+                  type="time"
+                  value={medicalAppointment?.time || ''}
+                  onChange={(e) =>
+                    updateMedicalAppointment({
+                      ...medicalAppointment,
+                      time: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                Nome do profissional ou unidade
+              </label>
+              <input
+                type="text"
+                placeholder="Ex.: Dr. Roberto (Psiquiatra) / CAPS AD"
+                value={medicalAppointment?.doctorName || ''}
+                onChange={(e) =>
+                  updateMedicalAppointment({
+                    ...medicalAppointment,
+                    doctorName: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+              />
+            </div>
           </RecomecaCard>
         </section>
 

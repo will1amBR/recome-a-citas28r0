@@ -22,6 +22,13 @@ import {
   togglePlanCompletion,
   getDiaryEntries,
   upsertDiaryEntry,
+  getPlanIntentions,
+  createPlanIntention,
+  deletePlanIntention,
+  getSleepCheckins,
+  createSleepCheckin,
+  getCelebratedMilestones,
+  recordCelebratedMilestone,
 } from '@/services/recomecaBackend'
 import {
   TrackedHabit,
@@ -144,7 +151,55 @@ export interface RecomecaStore {
   isImporting: boolean
   importLocalDataToBackend: () => Promise<void>
   saveFullOnboardingToBackend: () => Promise<void>
+  // Plano Se-Então
+  planIntentions: {
+    id: string
+    se_situacao: string
+    entao_acao: string
+    se_entao?: string
+    ativo?: boolean
+  }[]
+  addPlanIntention: (se_situacao: string, entao_acao: string) => Promise<void>
+  removePlanIntention: (id: string) => Promise<void>
+  recordPlanFollowed: (planText: string) => void
+  // Check-in de Sono
+  sleepCheckins: {
+    id: string
+    semana_ref: string
+    resposta: 'bem' | 'mais_ou_menos' | 'dificil' | 'pior'
+    nota?: string
+    created?: string
+  }[]
+  addSleepCheckin: (
+    resposta: 'bem' | 'mais_ou_menos' | 'dificil' | 'pior',
+    nota?: string,
+  ) => Promise<void>
+  // Consulta Médica
+  medicalAppointment: { date: string; time: string; doctorName: string }
+  updateMedicalAppointment: (appointment: {
+    date: string
+    time: string
+    doctorName: string
+  }) => Promise<void>
+  // Preferência de Cartão de Risco
+  hideRiskDaysCard: boolean
+  setHideRiskDaysCard: (hide: boolean) => Promise<void>
+  // Marcos Comemorados
+  celebratedMilestoneKeys: string[]
+  celebrateMilestone: (milestone: {
+    tipo: 'dias_sobrio' | 'dinheiro_economizado' | 'ondas_fissura'
+    substancia_tipo?: string
+    valor: number
+    chave_unica: string
+    registrado_diario?: boolean
+  }) => Promise<void>
 }
+
+const STORAGE_KEY_PLAN_INTENTIONS = 'recomeca_plan_intentions'
+const STORAGE_KEY_SLEEP_CHECKINS = 'recomeca_sleep_checkins'
+const STORAGE_KEY_MEDICAL_APPOINTMENT = 'recomeca_medical_appointment'
+const STORAGE_KEY_HIDE_RISK_CARD = 'recomeca_hide_risk_card'
+const STORAGE_KEY_CELEBRATED_MILESTONES = 'recomeca_celebrated_milestones'
 
 const StoreContext = React.createContext<RecomecaStore | null>(null)
 
@@ -293,6 +348,93 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
     ]
   })
 
+  // 1. Plano Se-Então
+  const [planIntentions, setPlanIntentions] = React.useState<
+    { id: string; se_situacao: string; entao_acao: string; se_entao?: string; ativo?: boolean }[]
+  >(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_PLAN_INTENTIONS)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      /* intentionally ignored */
+    }
+    return [
+      {
+        id: 'plan-default-1',
+        se_situacao: 'bater vontade forte depois do trabalho',
+        entao_acao: 'caminho 15 minutos ouvindo som de chuva antes de ir para casa',
+        se_entao:
+          'Se bater vontade forte depois do trabalho, então caminho 15 minutos ouvindo som de chuva antes de ir para casa.',
+        ativo: true,
+      },
+      {
+        id: 'plan-default-2',
+        se_situacao: 'sexta-feira à noite bater ansiedade ou solidão',
+        entao_acao:
+          'ligo ou mando mensagem para meu contato de apoio antes de decidir qualquer coisa',
+        se_entao:
+          'Se sexta-feira à noite bater ansiedade ou solidão, então ligo ou mando mensagem para meu contato de apoio antes de decidir qualquer coisa.',
+        ativo: true,
+      },
+    ]
+  })
+
+  // 2. Check-in de Sono
+  const [sleepCheckins, setSleepCheckins] = React.useState<
+    {
+      id: string
+      semana_ref: string
+      resposta: 'bem' | 'mais_ou_menos' | 'dificil' | 'pior'
+      nota?: string
+      created?: string
+    }[]
+  >(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SLEEP_CHECKINS)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      /* intentionally ignored */
+    }
+    return []
+  })
+
+  // 3. Consulta Médica
+  const [medicalAppointment, setMedicalAppointment] = React.useState<{
+    date: string
+    time: string
+    doctorName: string
+  }>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_MEDICAL_APPOINTMENT)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      /* intentionally ignored */
+    }
+    return { date: '', time: '', doctorName: '' }
+  })
+
+  // 4. Preferência de Cartão de Risco
+  const [hideRiskDaysCard, setHideRiskDaysCardState] = React.useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_HIDE_RISK_CARD)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      /* intentionally ignored */
+    }
+    return false
+  })
+
+  // 5. Marcos Comemorados
+  const [celebratedMilestoneKeys, setCelebratedMilestoneKeys] = React.useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CELEBRATED_MILESTONES)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      /* intentionally ignored */
+    }
+    return []
+  })
+
   // Situações de risco do usuário (onboarding / perfil / trocar)
   const [userRiskSituations, setUserRiskSituationsState] = React.useState<string[]>(() => {
     try {
@@ -390,6 +532,16 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
             prof.situacoes_risco.length > 0
           ) {
             setUserRiskSituationsState(prof.situacoes_risco)
+          }
+          if (prof.proxima_consulta_data) {
+            setMedicalAppointment({
+              date: prof.proxima_consulta_data,
+              time: prof.proxima_consulta_hora || '',
+              doctorName: prof.proxima_consulta_medico || '',
+            })
+          }
+          if (typeof prof.esconder_cartao_risco === 'boolean') {
+            setHideRiskDaysCardState(prof.esconder_cartao_risco)
           }
         } else {
           // Verifica se há dados no localStorage para oferecer importação
@@ -490,6 +642,40 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
           if (mappedCigLogs.length > 0) {
             setCigaretteLogs(mappedCigLogs)
           }
+        }
+
+        // 8. Carrega Plan Intentions (Se-Então)
+        const intentions = await getPlanIntentions(user.id)
+        if (intentions && intentions.length > 0) {
+          setPlanIntentions(
+            intentions.map((p) => ({
+              id: p.id || `plan-${Math.random()}`,
+              se_situacao: p.se_situacao,
+              entao_acao: p.entao_acao,
+              se_entao: p.se_entao || `Se ${p.se_situacao}, então ${p.entao_acao}.`,
+              ativo: p.ativo ?? true,
+            })),
+          )
+        }
+
+        // 9. Carrega Sleep Checkins
+        const sleeps = await getSleepCheckins(user.id)
+        if (sleeps && sleeps.length > 0) {
+          setSleepCheckins(
+            sleeps.map((s) => ({
+              id: s.id || `sleep-${Math.random()}`,
+              semana_ref: s.semana_ref,
+              resposta: s.resposta,
+              nota: s.nota,
+              created: s.created,
+            })),
+          )
+        }
+
+        // 10. Carrega Milestones já comemorados
+        const ms = await getCelebratedMilestones(user.id)
+        if (ms && ms.length > 0) {
+          setCelebratedMilestoneKeys(ms.map((m) => m.chave_unica))
         }
 
         // 7. Carrega Episódios
@@ -718,6 +904,49 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       // ignore
     }
   }, [userRiskSituations])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_PLAN_INTENTIONS, JSON.stringify(planIntentions))
+    } catch {
+      // ignore
+    }
+  }, [planIntentions])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_SLEEP_CHECKINS, JSON.stringify(sleepCheckins))
+    } catch {
+      // ignore
+    }
+  }, [sleepCheckins])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_MEDICAL_APPOINTMENT, JSON.stringify(medicalAppointment))
+    } catch {
+      // ignore
+    }
+  }, [medicalAppointment])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_HIDE_RISK_CARD, JSON.stringify(hideRiskDaysCard))
+    } catch {
+      // ignore
+    }
+  }, [hideRiskDaysCard])
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY_CELEBRATED_MILESTONES,
+        JSON.stringify(celebratedMilestoneKeys),
+      )
+    } catch {
+      // ignore
+    }
+  }, [celebratedMilestoneKeys])
 
   const updateContact = React.useCallback((patch: Partial<SupportContact>) => {
     setContact((prev) => ({ ...prev, ...patch }))
@@ -1128,6 +1357,216 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
     [addGoodAction],
   )
 
+  // Ações do Plano Se-Então
+  const addPlanIntention = React.useCallback(
+    async (se_situacao: string, entao_acao: string) => {
+      const se_entao = `Se ${se_situacao.trim()}, então ${entao_acao.trim()}.`
+      const newItem = {
+        id: `plan-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        se_situacao: se_situacao.trim(),
+        entao_acao: entao_acao.trim(),
+        se_entao,
+        ativo: true,
+      }
+      setPlanIntentions((prev) => [newItem, ...prev])
+      addGoodAction({
+        title: 'Novo plano se–então guardado',
+        type: 'plano-se-entao',
+        message: 'Plano registrado. Ter uma intenção clara protege seu recomeço.',
+      })
+
+      if (isAuthenticated && user?.id) {
+        try {
+          const res = await createPlanIntention(user.id, {
+            se_situacao: se_situacao.trim(),
+            entao_acao: entao_acao.trim(),
+          })
+          if (res?.id) {
+            setPlanIntentions((prev) =>
+              prev.map((p) => (p.id === newItem.id ? { ...p, id: res.id! } : p)),
+            )
+          }
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+    },
+    [isAuthenticated, user?.id, addGoodAction],
+  )
+
+  const removePlanIntention = React.useCallback(
+    async (id: string) => {
+      setPlanIntentions((prev) => prev.filter((p) => p.id !== id))
+      if (isAuthenticated && user?.id && !id.startsWith('plan-default-')) {
+        try {
+          await deletePlanIntention(id)
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+    },
+    [isAuthenticated, user?.id],
+  )
+
+  const recordPlanFollowed = React.useCallback(
+    (planText: string) => {
+      const now = new Date()
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+
+      addGoodAction({
+        title: 'Seguiu o plano se–então!',
+        type: 'plano-se-entao',
+        message: 'Feito. Você seguiu seu plano e se protegeu.',
+      })
+
+      // Registra também nas fissuras vencidas com técnica
+      recordTechniqueCompletion(`plan-followed-${Date.now()}`, 'Plano Se–Então', 'passou')
+
+      if (isAuthenticated && user?.id) {
+        try {
+          createCraving(user.id, {
+            data_hora: new Date().toISOString(),
+            situacao: 'Situação de risco enfrentada com plano se–então',
+            tecnica_usada: `Plano Se–Então: ${planText.slice(0, 100)}`,
+            resultado: 'passou',
+            duracao: '15 min',
+          })
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+    },
+    [addGoodAction, recordTechniqueCompletion, isAuthenticated, user?.id],
+  )
+
+  // Ações do Check-in de Sono
+  const addSleepCheckin = React.useCallback(
+    async (resposta: 'bem' | 'mais_ou_menos' | 'dificil' | 'pior', nota?: string) => {
+      const now = new Date()
+      const semana_ref = `${now.getFullYear()}-W${Math.ceil((now.getDate() + 6) / 7)}`
+      const newItem = {
+        id: `sleep-${Date.now()}`,
+        semana_ref,
+        resposta,
+        nota: nota || '',
+        created: now.toISOString(),
+      }
+
+      setSleepCheckins((prev) => [newItem, ...prev.filter((s) => s.semana_ref !== semana_ref)])
+      addGoodAction({
+        title: 'Check-in semanal de sono registrado',
+        type: 'sono',
+        message: 'Cuidar do descanso fortalece seu recomeço.',
+      })
+
+      if (isAuthenticated && user?.id) {
+        try {
+          await createSleepCheckin(user.id, {
+            semana_ref,
+            resposta,
+            nota: nota || '',
+          })
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+    },
+    [isAuthenticated, user?.id, addGoodAction],
+  )
+
+  // Consulta Médica
+  const updateMedicalAppointment = React.useCallback(
+    async (appointment: { date: string; time: string; doctorName: string }) => {
+      setMedicalAppointment(appointment)
+      if (isAuthenticated && user?.id) {
+        try {
+          await upsertProfile(user.id, {
+            proxima_consulta_data: appointment.date,
+            proxima_consulta_hora: appointment.time,
+            proxima_consulta_medico: appointment.doctorName,
+          })
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+    },
+    [isAuthenticated, user?.id],
+  )
+
+  // Preferência do Cartão de Risco
+  const setHideRiskDaysCard = React.useCallback(
+    async (hide: boolean) => {
+      setHideRiskDaysCardState(hide)
+      if (isAuthenticated && user?.id) {
+        try {
+          await upsertProfile(user.id, {
+            esconder_cartao_risco: hide,
+          })
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+    },
+    [isAuthenticated, user?.id],
+  )
+
+  // Marcos Comemorados
+  const celebrateMilestone = React.useCallback(
+    async (milestone: {
+      tipo: 'dias_sobrio' | 'dinheiro_economizado' | 'ondas_fissura'
+      substancia_tipo?: string
+      valor: number
+      chave_unica: string
+      registrado_diario?: boolean
+    }) => {
+      setCelebratedMilestoneKeys((prev) =>
+        prev.includes(milestone.chave_unica) ? prev : [...prev, milestone.chave_unica],
+      )
+
+      if (milestone.registrado_diario) {
+        // Se pediu para registrar no diário, adiciona uma entrada de reflexão
+        const now = new Date()
+        const dataStr = now.toISOString().slice(0, 10)
+        let textoMarco = ''
+        if (milestone.tipo === 'dias_sobrio') {
+          textoMarco = `Hoje alcancei o marco sereno de ${milestone.valor} dias. Um dia de cada vez, construindo minha paz.`
+        } else if (milestone.tipo === 'dinheiro_economizado') {
+          textoMarco = `Cruzei a marca de R$ ${milestone.valor} economizados. Um recurso que voltou para a minha vida.`
+        } else {
+          textoMarco = `Superei ${milestone.valor} ondas de vontade sem usar. Cada escolha me fortaleceu.`
+        }
+
+        addGoodAction({
+          title: `Marco celebrado: ${milestone.chave_unica}`,
+          type: 'marco',
+          message: 'Marco registrado no seu histórico com orgulho sereno.',
+        })
+
+        if (isAuthenticated && user?.id) {
+          try {
+            await upsertDiaryEntry(user.id, {
+              data: dataStr,
+              texto: textoMarco,
+              humor: 'esperancoso',
+              status_dia: 'limpo',
+            })
+          } catch {
+            /* intentionally ignored */
+          }
+        }
+      }
+
+      if (isAuthenticated && user?.id) {
+        try {
+          await recordCelebratedMilestone(user.id, milestone)
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+    },
+    [isAuthenticated, user?.id, addGoodAction],
+  )
+
   const value = React.useMemo<RecomecaStore>(
     () => ({
       habits,
@@ -1173,6 +1612,18 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       isImporting,
       importLocalDataToBackend,
       saveFullOnboardingToBackend,
+      planIntentions,
+      addPlanIntention,
+      removePlanIntention,
+      recordPlanFollowed,
+      sleepCheckins,
+      addSleepCheckin,
+      medicalAppointment,
+      updateMedicalAppointment,
+      hideRiskDaysCard,
+      setHideRiskDaysCard,
+      celebratedMilestoneKeys,
+      celebrateMilestone,
     }),
     [
       isDemoUser,
@@ -1218,6 +1669,18 @@ export function RecomecaProvider({ children }: { children: React.ReactNode }) {
       recordCheckinDone,
       recordHonestEpisode,
       clearToast,
+      planIntentions,
+      addPlanIntention,
+      removePlanIntention,
+      recordPlanFollowed,
+      sleepCheckins,
+      addSleepCheckin,
+      medicalAppointment,
+      updateMedicalAppointment,
+      hideRiskDaysCard,
+      setHideRiskDaysCard,
+      celebratedMilestoneKeys,
+      celebrateMilestone,
     ],
   )
 

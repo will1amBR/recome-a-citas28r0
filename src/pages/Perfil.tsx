@@ -30,6 +30,8 @@ import {
   LogOut,
   LogIn,
   UploadCloud,
+  Lightbulb,
+  Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -48,7 +50,16 @@ export default function Perfil() {
     hasLocalDataToImport,
     importLocalDataToBackend,
     isImporting,
+    userRiskSituations,
+    planIntentions,
+    addPlanIntention,
+    removePlanIntention,
+    medicalAppointment,
+    updateMedicalAppointment,
+    updateContact,
   } = useRecomecaStore()
+
+  const [customRiskInput, setCustomRiskInput] = React.useState<string>('')
 
   // Estado para edição inline da meta do dia de cada vício
   const [editingHabitId, setEditingHabitId] = React.useState<string | null>(null)
@@ -670,6 +681,184 @@ export default function Perfil() {
         </section>
 
         {/* =============================================================
+            3b. PLANO SE–ENTÃO (Prevenção de Recaída)
+           ============================================================= */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Lightbulb className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE]" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                Meus Planos Se–Então
+              </h3>
+            </div>
+            <span className="text-[10px] font-semibold text-[#4CAF7D] bg-[#E8F3EC] dark:bg-[#2A3831] px-2 py-0.5 rounded-full">
+              Prevenção de Recaída
+            </span>
+          </div>
+
+          <RecomecaCard variant="default" padding="md" className="space-y-3">
+            <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+              Pares &ldquo;Se [situação], então [minha ação]&rdquo;. Quando a vontade bater, seu
+              plano já estará definido.
+            </p>
+
+            {/* Lista dos planos existentes */}
+            <div className="space-y-2">
+              {planIntentions.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] flex items-start justify-between gap-2"
+                >
+                  <div className="text-xs text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed">
+                    <strong className="text-[#4CAF7D]">Se</strong> {plan.se_situacao},{' '}
+                    <strong className="text-[#7FBFA8]">então</strong> {plan.entao_acao}.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePlanIntention(plan.id)}
+                    className="text-[#6A7A72] hover:text-[#D96C68] text-xs p-1 touch-target shrink-0"
+                    aria-label="Remover plano"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Sugestões a partir das situações de risco já cadastradas */}
+            {userRiskSituations.length > 0 && (
+              <div className="space-y-1 pt-1 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                <span className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                  Usar uma situação que você marcou:
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {userRiskSituations.slice(0, 4).map((sit) => (
+                    <button
+                      key={sit}
+                      type="button"
+                      onClick={() => setCustomRiskInput(sit)}
+                      className="text-[11px] px-2 py-1 rounded-lg bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8]/20 transition-colors"
+                    >
+                      + {sit}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Formulário de novo plano */}
+            <div className="space-y-2 pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+              <span className="text-[11px] font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                Criar novo plano:
+              </span>
+              <input
+                type="text"
+                placeholder="Se... (ex.: bater vontade forte depois do trabalho)"
+                value={customRiskInput}
+                onChange={(e) => setCustomRiskInput(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+              />
+              <input
+                type="text"
+                placeholder="Então... (ex.: caminho 15 min ouvindo chuva antes de ir para casa)"
+                value={goalInputValue}
+                onChange={(e) => setGoalInputValue(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+              />
+              <button
+                type="button"
+                disabled={!customRiskInput.trim() || !goalInputValue.trim()}
+                onClick={async () => {
+                  if (customRiskInput.trim() && goalInputValue.trim()) {
+                    await addPlanIntention(customRiskInput.trim(), goalInputValue.trim())
+                    setCustomRiskInput('')
+                    setGoalInputValue('')
+                  }
+                }}
+                className="w-full py-2 rounded-xl text-xs font-bold bg-[#7FBFA8] hover:bg-[#6DA98F] text-white disabled:opacity-40 transition-all touch-target"
+              >
+                Salvar plano se–então
+              </button>
+            </div>
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
+            3c. PRÓXIMA CONSULTA MÉDICA
+           ============================================================= */}
+        <section className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE]" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                Próxima Consulta Médica
+              </h3>
+            </div>
+          </div>
+
+          <RecomecaCard variant="default" padding="md" className="space-y-3">
+            <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+              No dia da consulta, o Recomeça te lembra com carinho e prepara um resumo com o que
+              você registrou.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Data da consulta
+                </label>
+                <input
+                  type="date"
+                  value={medicalAppointment.date}
+                  onChange={(e) =>
+                    updateMedicalAppointment({
+                      ...medicalAppointment,
+                      date: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Horário (opcional)
+                </label>
+                <input
+                  type="time"
+                  value={medicalAppointment.time}
+                  onChange={(e) =>
+                    updateMedicalAppointment({
+                      ...medicalAppointment,
+                      time: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                Profissional ou Local (opcional)
+              </label>
+              <input
+                type="text"
+                placeholder="Ex.: Dra. Beatriz / CAPS AD"
+                value={medicalAppointment.doctorName}
+                onChange={(e) =>
+                  updateMedicalAppointment({
+                    ...medicalAppointment,
+                    doctorName: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+              />
+            </div>
+          </RecomecaCard>
+        </section>
+
+        {/* =============================================================
             4. HÁBITOS EM ACOMPANHAMENTO
            ============================================================= */}
         <section className="space-y-2">
@@ -821,10 +1010,24 @@ export default function Perfil() {
                 </div>
               </div>
 
-              {contact.hasConsent && (
+              {contact.hasConsent ? (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D] border border-[#4CAF7D]/30 shrink-0">
-                  Avisado
+                  Já avisado
                 </span>
+              ) : (
+                (contact.phone || contact.displayPhone) && (
+                  <a
+                    href={`https://wa.me/${(contact.phone || contact.displayPhone || '').replace(/\D/g, '').startsWith('55') ? (contact.phone || contact.displayPhone || '').replace(/\D/g, '') : `55${(contact.phone || contact.displayPhone || '').replace(/\D/g, '')}`}?text=${encodeURIComponent(
+                      `Oi, ${contact.name || 'tudo bem'}. Estou cuidando de mim e comecei um acompanhamento. Talvez eu peça sua ajuda de vez em quando. Obrigado por estar na minha rede.`,
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => updateContact({ hasConsent: true })}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-[#7FBFA8] text-white hover:bg-[#6DA98F] transition-colors shrink-0"
+                  >
+                    <span>Avisar pessoa (WhatsApp)</span>
+                  </a>
+                )
               )}
             </div>
 

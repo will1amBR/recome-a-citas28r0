@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   Sparkles,
   User,
+  MessageCircle,
+  Lightbulb,
   Clock,
   Sun,
   Sunset,
@@ -158,6 +160,12 @@ export default function Onboarding() {
   const [contactName, setContactName] = React.useState(contact.name)
   const [contactPhone, setContactPhone] = React.useState(contact.displayPhone || contact.phone)
   const [contactNotified, setContactNotified] = React.useState(contact.hasConsent)
+
+  // 5b) Novo: Plano Se-Então (Etapa Opcional dentro do Onboarding / Etapa 7)
+  const { planIntentions, addPlanIntention } = useRecomecaStore()
+  const [onboardingPlanRisk, setOnboardingPlanRisk] = React.useState('')
+  const [onboardingPlanAction, setOnboardingPlanAction] = React.useState('')
+  const [onboardingPlansCreated, setOnboardingPlansCreated] = React.useState(false)
 
   // 6) Situações de risco (Etapa 7)
   const [selectedRisks, setSelectedRisks] = React.useState<string[]>(userRiskSituations || [])
@@ -1099,6 +1107,39 @@ export default function Onboarding() {
                 helperText="Usado pelo botão SOS para discagem e mensagem de WhatsApp."
               />
 
+              {/* Botão de Avisar via WhatsApp se tiver telefone */}
+              {contactPhone.replace(/\D/g, '').length >= 8 && (
+                <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8]/40 space-y-2">
+                  <div className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] flex items-center justify-between">
+                    <span>Avisar essa pessoa com carinho:</span>
+                    {contactNotified && (
+                      <span className="text-[11px] font-bold text-[#4CAF7D] flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Já avisado
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                    Você pode mandar uma mensagem pronta pelo WhatsApp para ela saber que está na
+                    sua rede.
+                  </p>
+                  <a
+                    href={`https://wa.me/${contactPhone.replace(/\D/g, '').startsWith('55') ? contactPhone.replace(/\D/g, '') : `55${contactPhone.replace(/\D/g, '')}`}?text=${encodeURIComponent(
+                      `Oi, ${contactName.trim() || 'tudo bem'}. Estou cuidando de mim e comecei um acompanhamento. Talvez eu peça sua ajuda de vez em quando. Obrigado por estar na minha rede.`,
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      setContactNotified(true)
+                      updateContact({ hasConsent: true })
+                    }}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#7FBFA8] hover:bg-[#6DA98F] text-white text-xs font-bold transition-colors touch-target"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>Avisar que contei com essa pessoa (WhatsApp)</span>
+                  </a>
+                </div>
+              )}
+
               <label className="flex items-start gap-3 p-3 rounded-xl bg-[#F4F7F2] dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] cursor-pointer">
                 <input
                   type="checkbox"
@@ -1202,6 +1243,113 @@ export default function Onboarding() {
                   </button>
                 </div>
               </div>
+            </RecomecaCard>
+
+            {/* SEÇÃO OPCIONAL: PLANO SE-ENTÃO (Prevenção de Recaída baseada em ciência) */}
+            <RecomecaCard
+              variant="default"
+              padding="md"
+              className="space-y-3 border-l-4 border-l-[#4CAF7D]"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Lightbulb className="w-4 h-4 text-[#4CAF7D]" />
+                  <h3 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Seu Plano Se–Então (opcional)
+                  </h3>
+                </div>
+                <span className="text-[10px] font-semibold text-[#4CAF7D] bg-[#E8F3EC] dark:bg-[#2A3831] px-2 py-0.5 rounded-full">
+                  Prevenção científica
+                </span>
+              </div>
+
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                A ciência mostra que quem escreve com antecedência como vai agir em momentos de
+                risco tem muito mais chance de se manter firme. Escreva com as suas palavras:
+              </p>
+
+              {/* Sugestões rápidas de situação a partir do que já marcou */}
+              {selectedRisks.length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
+                    Usar uma situação que você marcou:
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedRisks.slice(0, 3).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setOnboardingPlanRisk(r)}
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-[#E8F3EC] dark:bg-[#2A3831] text-[#2F4A3E] dark:text-[#8FCCAE] hover:bg-[#7FBFA8]/20 transition-colors text-left"
+                      >
+                        + {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 bg-[#FDFAF5] dark:bg-[#1C2420] p-3 rounded-xl border border-[#E1E8E2] dark:border-[#2D3A34]">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Se... (situação ou momento de risco)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex.: bater vontade forte depois do trabalho..."
+                    value={onboardingPlanRisk}
+                    onChange={(e) => setOnboardingPlanRisk(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Então... (sua ação escolhida livremente por você)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex.: caminho 15 min ouvindo chuva antes de ir para casa..."
+                    value={onboardingPlanAction}
+                    onChange={(e) => setOnboardingPlanAction(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  disabled={!onboardingPlanRisk.trim() || !onboardingPlanAction.trim()}
+                  onClick={async () => {
+                    if (onboardingPlanRisk.trim() && onboardingPlanAction.trim()) {
+                      await addPlanIntention(onboardingPlanRisk.trim(), onboardingPlanAction.trim())
+                      setOnboardingPlanRisk('')
+                      setOnboardingPlanAction('')
+                      setOnboardingPlansCreated(true)
+                    }
+                  }}
+                  className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-[#7FBFA8] hover:bg-[#6DA98F] disabled:opacity-40 text-white transition-all touch-target"
+                >
+                  Guardar meu plano se–então
+                </button>
+              </div>
+
+              {planIntentions.length > 0 && (
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
+                    Seus planos guardados:
+                  </span>
+                  <div className="space-y-1">
+                    {planIntentions.slice(0, 2).map((p) => (
+                      <div
+                        key={p.id}
+                        className="p-2 rounded-lg bg-[#E8F3EC]/70 dark:bg-[#2A3831]/70 border border-[#7FBFA8]/30 text-xs text-[#2F4A3E] dark:text-[#E8EFE9]"
+                      >
+                        <strong>Se</strong> {p.se_situacao}, <strong>então</strong> {p.entao_acao}.
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </RecomecaCard>
 
             <RecomecaCard variant="highlight" padding="lg" className="space-y-4">

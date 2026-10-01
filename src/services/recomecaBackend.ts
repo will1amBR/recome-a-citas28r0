@@ -3,7 +3,7 @@ import pb from '@/lib/pocketbase/client'
 // PROFILES
 export interface ProfileData {
   id?: string
-  owner?: string
+  owner: string
   nome_preferido?: string
   nome_social?: string
   nome_registro?: string
@@ -19,8 +19,11 @@ export interface ProfileData {
   consentimento_lgpd?: boolean
   consentimento_lgpd_data?: string
   situacoes_risco?: string[]
+  proxima_consulta_data?: string
+  proxima_consulta_hora?: string
+  proxima_consulta_medico?: string
+  esconder_cartao_risco?: boolean
 }
-
 export async function getProfile(userId: string): Promise<ProfileData | null> {
   try {
     const record = await pb.collection('profiles').getFirstListItem(`owner="${userId}"`)
@@ -449,5 +452,180 @@ export async function getSupportResources(): Promise<SupportResourceData[]> {
     return list as unknown as SupportResourceData[]
   } catch {
     return []
+  }
+}
+
+// -------------------------------------------------------------
+// PLAN INTENTIONS (Plano Se-Então / Prevenção de Recaída)
+// -------------------------------------------------------------
+export interface PlanIntentionData {
+  id?: string
+  owner: string
+  se_situacao: string
+  entao_acao: string
+  se_entao?: string
+  ativo?: boolean
+  criado_em?: string
+  created?: string
+}
+
+export async function getPlanIntentions(userId: string): Promise<PlanIntentionData[]> {
+  try {
+    const list = await pb.collection('plan_intentions').getFullList({
+      filter: `owner="${userId}"`,
+      sort: '-created',
+    })
+    return list as unknown as PlanIntentionData[]
+  } catch {
+    return []
+  }
+}
+
+export async function createPlanIntention(
+  userId: string,
+  data: { se_situacao: string; entao_acao: string; ativo?: boolean },
+): Promise<PlanIntentionData> {
+  const se_entao = `Se ${data.se_situacao.trim()}, então ${data.entao_acao.trim()}.`
+  const record = await pb.collection('plan_intentions').create({
+    owner: userId,
+    se_situacao: data.se_situacao.trim(),
+    entao_acao: data.entao_acao.trim(),
+    se_entao,
+    ativo: data.ativo ?? true,
+    criado_em: new Date().toISOString(),
+  })
+  return record as unknown as PlanIntentionData
+}
+
+export async function updatePlanIntention(
+  id: string,
+  data: Partial<Omit<PlanIntentionData, 'id' | 'owner'>>,
+): Promise<PlanIntentionData> {
+  const payload: Record<string, unknown> = { ...data }
+  if (data.se_situacao || data.entao_acao) {
+    if (data.se_situacao && data.entao_acao) {
+      payload.se_entao = `Se ${data.se_situacao.trim()}, então ${data.entao_acao.trim()}.`
+    }
+  }
+  const record = await pb.collection('plan_intentions').update(id, payload)
+  return record as unknown as PlanIntentionData
+}
+
+export async function deletePlanIntention(id: string): Promise<boolean> {
+  try {
+    await pb.collection('plan_intentions').delete(id)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// -------------------------------------------------------------
+// SLEEP CHECK-INS (Check-in de sono semanal)
+// -------------------------------------------------------------
+export interface SleepCheckinData {
+  id?: string
+  owner: string
+  semana_ref: string // Ex: "2025-W18" ou "2025-05-04"
+  resposta: 'bem' | 'mais_ou_menos' | 'dificil' | 'pior'
+  nota?: string
+  created?: string
+}
+
+export async function getSleepCheckins(userId: string): Promise<SleepCheckinData[]> {
+  try {
+    const list = await pb.collection('sleep_checkins').getFullList({
+      filter: `owner="${userId}"`,
+      sort: '-created',
+    })
+    return list as unknown as SleepCheckinData[]
+  } catch {
+    return []
+  }
+}
+
+export async function createSleepCheckin(
+  userId: string,
+  data: {
+    semana_ref: string
+    resposta: 'bem' | 'mais_ou_menos' | 'dificil' | 'pior'
+    nota?: string
+  },
+): Promise<SleepCheckinData> {
+  const record = await pb.collection('sleep_checkins').create({
+    owner: userId,
+    semana_ref: data.semana_ref,
+    resposta: data.resposta,
+    nota: data.nota || '',
+  })
+  return record as unknown as SleepCheckinData
+}
+
+// -------------------------------------------------------------
+// MILESTONES (Celebração de Marcos Comemorados)
+// -------------------------------------------------------------
+export interface MilestoneData {
+  id?: string
+  owner: string
+  tipo: 'dias_sobrio' | 'dinheiro_economizado' | 'ondas_fissura'
+  substancia_tipo?: string
+  valor: number
+  chave_unica: string
+  data_comemorado?: string
+  registrado_diario?: boolean
+  created?: string
+}
+
+export async function getCelebratedMilestones(userId: string): Promise<MilestoneData[]> {
+  try {
+    const list = await pb.collection('milestones').getFullList({
+      filter: `owner="${userId}"`,
+      sort: '-created',
+    })
+    return list as unknown as MilestoneData[]
+  } catch {
+    return []
+  }
+}
+
+export async function recordCelebratedMilestone(
+  userId: string,
+  data: {
+    tipo: 'dias_sobrio' | 'dinheiro_economizado' | 'ondas_fissura'
+    substancia_tipo?: string
+    valor: number
+    chave_unica: string
+    registrado_diario?: boolean
+  },
+): Promise<MilestoneData | null> {
+  try {
+    // Verificar se já foi celebrado
+    const existing = await pb
+      .collection('milestones')
+      .getFirstListItem(`owner="${userId}" && chave_unica="${data.chave_unica}"`)
+      .catch(() => null)
+
+    if (existing) {
+      if (data.registrado_diario && !existing.registrado_diario) {
+        const updated = await pb.collection('milestones').update(existing.id, {
+          registrado_diario: true,
+        })
+        return updated as unknown as MilestoneData
+      }
+      return existing as unknown as MilestoneData
+    }
+
+    const record = await pb.collection('milestones').create({
+      owner: userId,
+      tipo: data.tipo,
+      substancia_tipo: data.substancia_tipo || '',
+      valor: data.valor,
+      chave_unica: data.chave_unica,
+      data_comemorado: new Date().toISOString(),
+      registrado_diario: data.registrado_diario ?? false,
+    })
+    return record as unknown as MilestoneData
+  } catch {
+    return null
   }
 }

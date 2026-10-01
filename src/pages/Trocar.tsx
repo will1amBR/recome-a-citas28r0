@@ -46,6 +46,7 @@ import {
   TreePine,
   Dumbbell,
   Sparkle,
+  Lightbulb,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -75,7 +76,11 @@ export default function Trocar() {
     todayCompletedTaskIds,
     recordTechniqueCompletion,
     recordActivityCompletion,
+    planIntentions,
+    recordPlanFollowed,
   } = useRecomecaStore()
+
+  const [planMarkedFollowed, setPlanMarkedFollowed] = React.useState(false)
 
   // 15 minutes timer (900 seconds)
   const TOTAL_SECONDS = 15 * 60
@@ -342,6 +347,62 @@ export default function Trocar() {
       />
 
       <div className="px-4 py-4 space-y-6">
+        {/* =============================================================
+            NOVO: LEMBRETE DO PLANO SE-ENTÃO NO TOPO ("Bateu a vontade?")
+           ============================================================= */}
+        {planIntentions.length > 0 && (
+          <section aria-label="Seu plano se–então para a vontade">
+            <RecomecaCard
+              variant="highlight"
+              padding="md"
+              className="space-y-2.5 border-[#7FBFA8] shadow-sm animate-fade-in"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#2F4A3E] dark:text-[#8FCCAE]">
+                  <Lightbulb className="w-4 h-4 text-[#4CAF7D]" />
+                  <span>Bateu a vontade? Lembre do seu plano:</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F3EC] dark:bg-[#2A3831] text-[#4CAF7D]">
+                  Seu Plano
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white dark:bg-[#242E29] border border-[#7FBFA8]/30">
+                <p className="text-sm font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] leading-relaxed">
+                  <span className="text-[#4CAF7D] font-bold">Se</span>{' '}
+                  {planIntentions[0].se_situacao},{' '}
+                  <span className="text-[#7FBFA8] font-bold">então</span>{' '}
+                  {planIntentions[0].entao_acao}.
+                </p>
+                <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] mt-1 italic">
+                  &ldquo;Vale lembrar dele agora.&rdquo;
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                {planMarkedFollowed ? (
+                  <div className="text-xs font-bold text-[#4CAF7D] flex items-center gap-1.5 py-1">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Você seguiu seu plano! Registro guardado com carinho.</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      recordPlanFollowed(planIntentions[0].se_entao || planIntentions[0].entao_acao)
+                      setPlanMarkedFollowed(true)
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-[#7FBFA8] hover:bg-[#6DA98F] text-white flex items-center justify-center gap-2 transition-all touch-target shadow-xs"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Segui meu plano</span>
+                  </button>
+                )}
+              </div>
+            </RecomecaCard>
+          </section>
+        )}
+
         {/* =============================================================
             SELETOR DE VÍCIO ATIVO E CONTADOR CONTEXTUALIZADO
            ============================================================= */}
