@@ -80,7 +80,7 @@ export default function Index() {
           {/* Nome e frase-guia */}
           <div className="space-y-3 break-words">
             <h1 className="text-2xl min-[360px]:text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#2F4A3E] dark:text-[#E8EFE9] leading-[1.15]">
-              Controle seus vícios.
+              Controle seus impulsos.
               <br />
               <span className="text-[#6DA98F] dark:text-[#8FCCAE]">Um dia de cada vez.</span>
             </h1>
@@ -116,16 +116,21 @@ export default function Index() {
           </div>
 
           {/* Card visual de demonstração do contador */}
-          <div className="pt-2">
+          <div className="pt-2 pb-6 sm:pb-0">
             <RecomecaCard
               variant="highlight"
               padding="lg"
               className="text-center relative overflow-hidden"
             >
               <div className="flex items-center justify-between gap-2 mb-3 text-xs sm:text-sm font-semibold text-[#6A7A72] dark:text-[#A0B0A7]">
-                <span className="inline-flex items-center gap-1.5 truncate">
+                <span
+                  className="inline-flex items-center gap-1.5 shrink min-w-0"
+                  title="Exemplo de jornada real"
+                >
                   <CalendarDays className="w-4 h-4 text-[#7FBFA8] dark:text-[#8FCCAE] shrink-0" />
-                  <span className="truncate">Exemplo de jornada real</span>
+                  <span className="whitespace-normal text-left leading-tight sm:truncate">
+                    Exemplo de jornada
+                  </span>
                 </span>
                 <MilestoneBadge days={21} label="Primeiro marco" size="sm" className="shrink-0" />
               </div>

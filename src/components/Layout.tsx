@@ -42,7 +42,7 @@ export default function Layout() {
           className={cn(
             'flex-1 flex flex-col w-full min-w-0 overflow-x-hidden',
             !isOnboarding && !isLanding && 'pb-28', // Espaço para nav inferior + botão SOS
-            isLanding && 'pb-24', // Espaço seguro para o botão SOS flutuante
+            isLanding && 'pb-24', // Espaço seguro para o rodapé da landing
             isOnboarding && 'pb-24',
           )}
         >
@@ -54,12 +54,16 @@ export default function Layout() {
             - Coral exclusivo (#E86A4C / dark #F07856)
             - Z-index alto (60)
             - Alvo de toque >= 44px
-            - Posicionado sem cobrir botões primários da tela nem abas inferiores
+            - Na landing (sem bottom nav), fica colado próximo à borda inferior (bottom-4) para não cobrir o conteúdo central da viewport
+            - Nas telas com bottom nav, fica em bottom-20 (acima das abas)
            ------------------------------------------------------------- */}
         {!isSOS && (
           <aside
             aria-label="Apoio emergencial"
-            className="fixed z-[60] bottom-20 right-3 min-[400px]:right-4 sm:right-6 pointer-events-none"
+            className={cn(
+              'fixed z-[60] right-3 min-[400px]:right-4 sm:right-6 pointer-events-none',
+              isLanding ? 'bottom-4 sm:bottom-6' : 'bottom-20',
+            )}
           >
             <div className="pointer-events-auto">
               <button
