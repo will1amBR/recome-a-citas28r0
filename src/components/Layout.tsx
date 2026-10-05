@@ -2,6 +2,8 @@ import * as React from 'react'
 import { Outlet, useLocation, Link, useNavigate } from 'react-router-dom'
 import { Sun, PenLine, BookOpen, HeartHandshake, User, PhoneCall, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isPinSet, isSessionUnlocked } from '@/lib/securityPin'
+import { PinUnlockScreen } from '@/components/recomeca'
 
 interface NavTab {
   path: string
@@ -27,6 +29,26 @@ export default function Layout() {
   const isOnboarding = currentPath.startsWith('/onboarding')
   const isSOS = currentPath === '/sos'
   const isLanding = currentPath === '/'
+  const isLogin = currentPath === '/login'
+
+  // Controle de bloqueio por PIN:
+  // NÃO bloquear "/", "/login" nem "/sos" (segurança em 1º lugar — SOS sempre liberado)
+  const isExemptFromLock = isLanding || isLogin || isSOS
+
+  const [isUnlocked, setIsUnlocked] = React.useState<boolean>(() => {
+    return isSessionUnlocked()
+  })
+
+  // Checa periodicamente se o PIN está ativo e se a sessão está destravada
+  React.useEffect(() => {
+    if (!isPinSet()) {
+      setIsUnlocked(true)
+    } else {
+      setIsUnlocked(isSessionUnlocked())
+    }
+  }, [currentPath])
+
+  const shouldShowLockScreen = isPinSet() && !isUnlocked && !isExemptFromLock
 
   return (
     <div className="min-h-screen bg-[#FDFAF5] dark:bg-[#1C2420] text-[#2F4A3E] dark:text-[#E8EFE9] flex flex-col font-sans selection:bg-[#7FBFA8]/30">
@@ -46,7 +68,11 @@ export default function Layout() {
             isOnboarding && 'pb-24',
           )}
         >
-          <Outlet />
+          {shouldShowLockScreen ? (
+            <PinUnlockScreen onUnlocked={() => setIsUnlocked(true)} />
+          ) : (
+            <Outlet />
+          )}
         </main>
 
         {/* -------------------------------------------------------------

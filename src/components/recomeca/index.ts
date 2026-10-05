@@ -30,6 +30,7 @@ export { CigaretteQuickLogModal } from './CigaretteQuickLogModal'
 export type { CigaretteQuickLogModalProps } from './CigaretteQuickLogModal'
 
 export { ScreenHeader, LegalNoticeFooter } from './ScreenHeader'
+export { PinUnlockScreen } from './PinUnlockScreen'
 
 export {
   SoundLibraryModal,

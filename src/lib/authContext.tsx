@@ -12,6 +12,8 @@ export interface AuthContextType {
     email: string,
     pass: string,
     name?: string,
+    role?: 'paciente' | 'profissional',
+    crm?: string,
   ) => Promise<{ success: boolean; error?: string }>
   requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
@@ -55,15 +57,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const signup = async (email: string, pass: string, name?: string) => {
+  const signup = async (
+    email: string,
+    pass: string,
+    name?: string,
+    role: 'paciente' | 'profissional' = 'paciente',
+    crm?: string,
+  ) => {
     try {
       const cleanEmail = email.trim().toLowerCase()
-      await pb.collection('users').create({
+      const payload: Record<string, unknown> = {
         email: cleanEmail,
         password: pass,
         passwordConfirm: pass,
         name: name?.trim() || '',
-      })
+        role: role || 'paciente',
+      }
+      if (crm) {
+        payload.crm_conselho = crm.trim()
+      }
+
+      await pb.collection('users').create(payload)
       // Auto login após cadastro
       await pb.collection('users').authWithPassword(cleanEmail, pass)
       return { success: true }

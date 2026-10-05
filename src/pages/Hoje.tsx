@@ -391,7 +391,7 @@ export default function Hoje() {
                 <div className="flex items-center gap-2 text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
                   <Stethoscope className="w-4 h-4 text-[#7FBFA8]" />
                   <span>
-                    Hoje tem consulta médica
+                    Seu lembrete do dia
                     {medicalAppointment.time ? ` às ${medicalAppointment.time}` : ''}
                   </span>
                 </div>
@@ -401,7 +401,8 @@ export default function Hoje() {
               </div>
               <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
                 {medicalAppointment.doctorName ? `Com ${medicalAppointment.doctorName}. ` : ''}
-                Hoje tem consulta. Quer levar seu resumo com o histórico do que você registrou?
+                Você tem um compromisso agendado. Quer levar seu resumo com o histórico do que você
+                registrou?
               </p>
               <div className="pt-1 flex items-center justify-end">
                 <Link

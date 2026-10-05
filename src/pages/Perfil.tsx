@@ -1,15 +1,36 @@
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   RecomecaCard,
   RecomecaButton,
   RecomecaInput,
   ScreenHeader,
   LegalNoticeFooter,
+  ConfirmationModal,
 } from '@/components/recomeca'
 import { useRecomecaStore } from '@/lib/recomecaStore'
 import { useAuth } from '@/lib/authContext'
 import { MOCK_USER } from '@/lib/mockData'
+import {
+  isPinSet,
+  savePin,
+  removePin,
+  isBiometricsConfigured,
+  setBiometricsConfigured,
+  isBiometricsAvailableOnDevice,
+} from '@/lib/securityPin'
+import {
+  collectAllUserData,
+  downloadUserDataFiles,
+  deleteAllUserDataAndAccount,
+} from '@/services/privacyService'
+import {
+  createDoctorLinkCode,
+  getPatientDoctorLinks,
+  revokeDoctorLink,
+  upsertPatientSummaryForDoctor,
+  DoctorLinkData,
+} from '@/services/doctorService'
 import {
   User,
   Moon,
@@ -32,10 +53,18 @@ import {
   UploadCloud,
   Lightbulb,
   Calendar,
+  KeyRound,
+  Fingerprint,
+  Download,
+  Trash2,
+  Stethoscope,
+  Copy,
+  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function Perfil() {
+  const navigate = useNavigate()
   const { isAuthenticated, user, logout } = useAuth()
   const {
     contact,
@@ -60,6 +89,201 @@ export default function Perfil() {
   } = useRecomecaStore()
 
   const [customRiskInput, setCustomRiskInput] = React.useState<string>('')
+
+  // Estados de Privacidade: PIN e Biometria
+  const [hasPin, setHasPin] = React.useState<boolean>(() => isPinSet())
+  const [isSettingPin, setIsSettingPin] = React.useState<boolean>(false)
+  const [pinValue, setPinValue] = React.useState<string>('')
+  const [pinConfirmValue, setPinConfirmValue] = React.useState<string>('')
+  const [pinError, setPinError] = React.useState<string | null>(null)
+  const [pinSuccess, setPinSuccess] = React.useState<string | null>(null)
+
+  const [biometricsAvailable, setBiometricsAvailable] = React.useState<boolean>(false)
+  const [biometricsEnabled, setBiometricsEnabled] = React.useState<boolean>(() =>
+    isBiometricsConfigured(),
+  )
+
+  React.useEffect(() => {
+    isBiometricsAvailableOnDevice().then((avail) => {
+      setBiometricsAvailable(avail)
+    })
+  }, [])
+
+  // Estados de Exportar e Apagar Conta
+  const [isExporting, setIsExporting] = React.useState<boolean>(false)
+  const [exportSuccess, setExportSuccess] = React.useState<boolean>(false)
+
+  // Modal de apagar conta em duas etapas
+  const [deleteStep, setDeleteStep] = React.useState<number>(0) // 0: fechado, 1: primeiro aviso, 2: digitar APAGAR
+  const [confirmInput, setConfirmInput] = React.useState<string>('')
+  const [isDeleting, setIsDeleting] = React.useState<boolean>(false)
+
+  // Estados da Seção "Meu Médico" (Vínculo e visualização)
+  const [doctorLinks, setDoctorLinks] = React.useState<DoctorLinkData[]>([])
+  const [isGeneratingCode, setIsGeneratingCode] = React.useState<boolean>(false)
+  const [generatedCode, setGeneratedCode] = React.useState<string | null>(null)
+  const [copiedDoctorCode, setCopiedDoctorCode] = React.useState<boolean>(false)
+  const [doctorMsg, setDoctorMsg] = React.useState<string | null>(null)
+
+  // Carrega links com médicos
+  const loadDoctorLinks = React.useCallback(async () => {
+    if (!user?.id) return
+    const links = await getPatientDoctorLinks(user.id)
+    setDoctorLinks(links)
+  }, [user?.id])
+
+  React.useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      loadDoctorLinks()
+    }
+  }, [isAuthenticated, user?.id, loadDoctorLinks])
+
+  // Sincroniza resumo com o médico caso haja link ativo
+  const syncSummaryWithDoctor = React.useCallback(async () => {
+    if (!user?.id) return
+    const activeLink = doctorLinks.find((l) => l.status === 'active')
+    await upsertPatientSummaryForDoctor({
+      patient: user.id,
+      doctor: activeLink?.doctor || undefined,
+      patient_display_name: userGreetingName || user?.name || 'Paciente',
+      substances_summary: habits.map((h) => ({
+        name: h.name,
+        goal: h.goalType === 'parar' ? 'Parar de vez' : 'Reduzir aos poucos',
+        cleanDays: h.currentStreakDays,
+        bestStreak: h.bestStreakDays,
+        cleanDaysMonth: h.cleanDaysThisMonth || h.currentStreakDays,
+      })),
+      relapse_alerts: [],
+      med_screening_answers: [
+        { question: 'Precisou tomar mais para fazer o mesmo efeito?', answeredYes: false },
+        { question: 'Sentiu vontade de tomar antes do horário prescrito?', answeredYes: false },
+        { question: 'A caixa acabou antes do previsto ou perdeu comprimidos?', answeredYes: false },
+        {
+          question: 'Pegou receita com mais de um médico para o mesmo sintoma?',
+          answeredYes: false,
+        },
+      ],
+      sleep_summary: dailyRoutine.sleepRoutine
+        ? [{ week: 'Semana atual', answer: 'Anotado', note: dailyRoutine.sleepRoutine }]
+        : [],
+      milestones_summary: [{ title: 'Início do acompanhamento', isAchieved: true }],
+      next_appointment: medicalAppointment.date
+        ? `${medicalAppointment.date}${medicalAppointment.time ? ` às ${medicalAppointment.time}` : ''}${medicalAppointment.doctorName ? ` (${medicalAppointment.doctorName})` : ''}`
+        : 'Não agendada',
+      updated_at_display: new Date().toLocaleDateString('pt-BR'),
+    })
+  }, [
+    user?.id,
+    user?.name,
+    userGreetingName,
+    habits,
+    dailyRoutine.sleepRoutine,
+    medicalAppointment,
+    doctorLinks,
+  ])
+
+  React.useEffect(() => {
+    if (isAuthenticated && user?.id && doctorLinks.some((l) => l.status === 'active')) {
+      syncSummaryWithDoctor()
+    }
+  }, [isAuthenticated, user?.id, doctorLinks, syncSummaryWithDoctor])
+
+  // Handlers para PIN
+  const handleSaveNewPin = () => {
+    setPinError(null)
+    setPinSuccess(null)
+    if (!/^\d{4,6}$/.test(pinValue)) {
+      setPinError('O PIN deve conter de 4 a 6 números.')
+      return
+    }
+    if (pinValue !== pinConfirmValue) {
+      setPinError('A confirmação do PIN não confere. Digite com calma.')
+      return
+    }
+    savePin(pinValue)
+    setHasPin(true)
+    setIsSettingPin(false)
+    setPinValue('')
+    setPinConfirmValue('')
+    setPinSuccess('PIN ativado com sucesso! Seu app está protegido.')
+    setTimeout(() => setPinSuccess(null), 4000)
+  }
+
+  const handleRemovePin = () => {
+    removePin()
+    setHasPin(false)
+    setBiometricsEnabled(false)
+    setPinSuccess('PIN removido. As telas voltam a abrir diretamente.')
+    setTimeout(() => setPinSuccess(null), 4000)
+  }
+
+  const handleToggleBiometrics = (checked: boolean) => {
+    setBiometricsConfigured(checked)
+    setBiometricsEnabled(checked)
+  }
+
+  // Exportar dados
+  const handleExportData = async () => {
+    setIsExporting(true)
+    try {
+      const data = await collectAllUserData(
+        user?.id || 'local_user',
+        user?.email || 'usuario@local',
+        userGreetingName || user?.name || 'Usuário Recomeça',
+      )
+      downloadUserDataFiles(data)
+      setExportSuccess(true)
+      setTimeout(() => setExportSuccess(false), 5000)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // Apagar conta
+  const handleConfirmDelete = async () => {
+    if (confirmInput.trim().toUpperCase() !== 'APAGAR') return
+    setIsDeleting(true)
+    try {
+      if (user?.id) {
+        await deleteAllUserDataAndAccount(user.id)
+      } else {
+        localStorage.clear()
+        sessionStorage.clear()
+      }
+      logout()
+      setDeleteStep(0)
+      navigate('/', { replace: true })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Gerar código para o médico
+  const handleGenerateDoctorCode = async () => {
+    if (!user?.id) return
+    setIsGeneratingCode(true)
+    setDoctorMsg(null)
+    try {
+      const link = await createDoctorLinkCode(
+        user.id,
+        userGreetingName || user?.name || 'Paciente Recomeça',
+      )
+      setGeneratedCode(link.code)
+      loadDoctorLinks()
+    } catch {
+      setDoctorMsg('Não foi possível gerar o código agora. Tente de novo.')
+    } finally {
+      setIsGeneratingCode(false)
+    }
+  }
+
+  // Desvincular médico
+  const handleRevokeDoctor = async (linkId: string) => {
+    await revokeDoctorLink(linkId)
+    setDoctorMsg('Vínculo desfeito com sucesso. O médico não tem mais acesso ao resumo.')
+    loadDoctorLinks()
+    setTimeout(() => setDoctorMsg(null), 4000)
+  }
 
   // Estado para edição inline da meta do dia de cada vício
   const [editingHabitId, setEditingHabitId] = React.useState<string | null>(null)
@@ -1085,39 +1309,448 @@ export default function Perfil() {
         </section>
 
         {/* =============================================================
-            7. PRIVACIDADE E TERMOS (LGPD)
+            7. MEU MÉDICO / VÍNCULO PROFISSIONAL (PARTE 2 DO PROMPT)
            ============================================================= */}
         <section className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7]">
-            Privacidade e Legal
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+              <Stethoscope className="w-4 h-4 text-[#7FBFA8]" />
+              <span>Meu Médico / Terapeuta</span>
+            </h3>
+            <span className="text-[10px] font-semibold text-[#4CAF7D] bg-[#E8F3EC] dark:bg-[#2A3831] px-2 py-0.5 rounded-full">
+              Com seu consentimento
+            </span>
+          </div>
 
-          <RecomecaCard
-            variant="default"
-            padding="sm"
-            className="divide-y divide-[#E1E8E2] dark:divide-[#2D3A34]"
-          >
-            <div className="p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Lock className="w-4 h-4 text-[#7FBFA8]" />
-                <span className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                  Proteção de Dados de Saúde (LGPD)
-                </span>
-              </div>
-              <span className="text-[10px] text-[#4CAF7D] font-bold">Ativo</span>
+          <RecomecaCard variant="default" padding="md" className="space-y-3">
+            <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+              Você pode permitir que seu médico ou terapeuta acompanhe seu resumo clínico pelo
+              painel dele. Ele vê apenas dias limpos, sequência, sinais de remédio e sono.
+            </p>
+
+            <div className="p-2.5 rounded-xl bg-[#E8F3EC]/70 dark:bg-[#2A3831]/70 border border-[#7FBFA8]/30 text-xs text-[#2F4A3E] dark:text-[#8FCCAE] flex items-center gap-2">
+              <Lock className="w-4 h-4 text-[#4CAF7D] shrink-0" />
+              <span>
+                <strong>Garantia ética:</strong> Seu médico <strong>NUNCA</strong> vê seu diário,
+                textos livres de episódios nem fotos de recibos.
+              </span>
             </div>
 
-            <div className="p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <FileText className="w-4 h-4 text-[#7FBFA8]" />
-                <span className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
-                  Notificações neutras e discretas
+            {/* Lista de médicos vinculados */}
+            {doctorLinks.filter((l) => l.status === 'active').length > 0 && (
+              <div className="space-y-2 pt-1 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+                <span className="text-[11px] font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                  Profissionais com acesso ao seu resumo:
                 </span>
+                {doctorLinks
+                  .filter((l) => l.status === 'active')
+                  .map((link) => (
+                    <div
+                      key={link.id}
+                      className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#E1E8E2] dark:border-[#2D3A34] flex items-center justify-between gap-2"
+                    >
+                      <div>
+                        <h4 className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                          {link.doctor_name || 'Dr(a). Profissional'}
+                        </h4>
+                        <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                          {link.doctor_crm ? `CRM/Conselho: ${link.doctor_crm} • ` : ''}
+                          Pode ver seu resumo. Ele nunca vê seu diário.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRevokeDoctor(link.id)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#D96C68] hover:bg-[#FBEBEA] dark:hover:bg-[#331C1A] border border-[#D96C68]/30 transition-colors"
+                      >
+                        Desvincular
+                      </button>
+                    </div>
+                  ))}
               </div>
-              <span className="text-[10px] text-[#4CAF7D] font-bold">Sim</span>
+            )}
+
+            {/* Gerador de código para novo médico */}
+            <div className="pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34] space-y-2">
+              <span className="text-[11px] font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                Conectar com novo profissional:
+              </span>
+
+              {generatedCode ? (
+                <div className="p-3 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8] space-y-2 animate-fade-in">
+                  <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] block">
+                    Passe este código para o seu médico digitar em /profissional:
+                  </span>
+                  <div className="flex items-center justify-between bg-white dark:bg-[#242E29] p-2.5 rounded-xl border border-[#7FBFA8]/50">
+                    <span className="text-lg font-mono font-bold tracking-widest text-[#2F4A3E] dark:text-[#8FCCAE]">
+                      {generatedCode}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(generatedCode)
+                          setCopiedDoctorCode(true)
+                          setTimeout(() => setCopiedDoctorCode(false), 2000)
+                        }
+                      }}
+                      className="px-3 py-1 rounded-lg bg-[#7FBFA8] text-white text-xs font-bold flex items-center gap-1"
+                    >
+                      {copiedDoctorCode ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                      <span>{copiedDoctorCode ? 'Copiado!' : 'Copiar'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleGenerateDoctorCode}
+                  disabled={isGeneratingCode || !isAuthenticated}
+                  className="w-full py-2.5 rounded-xl bg-[#7FBFA8] hover:bg-[#6DA98F] text-white text-xs font-bold transition-all disabled:opacity-40"
+                >
+                  {isGeneratingCode
+                    ? 'Gerando código...'
+                    : !isAuthenticated
+                      ? 'Faça login para gerar código de médico'
+                      : 'Gerar código de vínculo de 6 dígitos'}
+                </button>
+              )}
+
+              {doctorMsg && (
+                <p className="text-xs font-semibold text-[#4CAF7D] animate-fade-in">{doctorMsg}</p>
+              )}
             </div>
           </RecomecaCard>
         </section>
+
+        {/* =============================================================
+            8. PRIVACIDADE COMPLETA (PARTE 1 DO PROMPT)
+            - PIN / Biometria
+            - Exportar meus dados
+            - Apagar minha conta e tudo que registrei
+            - Notificações neutras
+           ============================================================= */}
+        <section className="space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+            <Lock className="w-4 h-4 text-[#7FBFA8]" />
+            <span>Privacidade & Proteção de Dados</span>
+          </h3>
+
+          {/* Feedback de sucesso do PIN */}
+          {pinSuccess && (
+            <div className="p-3 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-xs font-semibold text-[#4CAF7D] border border-[#4CAF7D]/30 animate-fade-in">
+              {pinSuccess}
+            </div>
+          )}
+
+          {/* 8.1 BLOQUEIO COM PIN / BIOMETRIA */}
+          <RecomecaCard variant="default" padding="md" className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    PIN de Acesso
+                  </h4>
+                  <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                    {hasPin ? 'PIN ativo para abrir o app' : 'Proteja suas telas com 4 a 6 dígitos'}
+                  </p>
+                </div>
+              </div>
+
+              {hasPin ? (
+                <button
+                  type="button"
+                  onClick={handleRemovePin}
+                  className="text-xs font-bold text-[#D96C68] hover:underline"
+                >
+                  Desativar PIN
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsSettingPin((p) => !p)}
+                  className="px-3 py-1.5 rounded-xl bg-[#7FBFA8] text-white text-xs font-bold hover:bg-[#6DA98F]"
+                >
+                  {isSettingPin ? 'Fechar' : 'Ativar PIN'}
+                </button>
+              )}
+            </div>
+
+            {/* Formulário de definição de PIN com confirmação */}
+            {isSettingPin && !hasPin && (
+              <div className="p-3.5 rounded-xl bg-[#FDFAF5] dark:bg-[#1C2420] border border-[#7FBFA8] space-y-3 animate-fade-in">
+                <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                  Escolha um PIN de 4 a 6 números:
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="password"
+                    maxLength={6}
+                    placeholder="Digite o PIN (4–6 dígitos)"
+                    value={pinValue}
+                    onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ''))}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                  />
+                  <input
+                    type="password"
+                    maxLength={6}
+                    placeholder="Confirme o mesmo PIN"
+                    value={pinConfirmValue}
+                    onChange={(e) => setPinConfirmValue(e.target.value.replace(/\D/g, ''))}
+                    className="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-[#2F4A3E] dark:text-[#E8EFE9]"
+                  />
+                </div>
+
+                {pinError && <p className="text-xs font-semibold text-[#D96C68]">{pinError}</p>}
+
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingPin(false)}
+                    className="px-3 py-1 text-xs text-[#6A7A72]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveNewPin}
+                    className="px-4 py-1.5 rounded-xl bg-[#7FBFA8] text-white text-xs font-bold hover:bg-[#6DA98F]"
+                  >
+                    Salvar e Proteger
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Opção de Biometria se suportada ou aviso gentil */}
+            <div className="pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Fingerprint className="w-4 h-4 text-[#7FBFA8]" />
+                <div>
+                  <span className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9] block">
+                    Desbloqueio com Biometria
+                  </span>
+                  <span className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7]">
+                    {biometricsAvailable
+                      ? 'Impressão digital ou reconhecimento facial'
+                      : 'Não disponível neste navegador ou aparelho'}
+                  </span>
+                </div>
+              </div>
+
+              {biometricsAvailable ? (
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={biometricsEnabled}
+                    onChange={(e) => handleToggleBiometrics(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-[#C4CFC8] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#7FBFA8]" />
+                </label>
+              ) : (
+                <span className="text-[10px] text-[#6A7A72] dark:text-[#A0B0A7] italic">
+                  Indisponível
+                </span>
+              )}
+            </div>
+
+            <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] pt-1 leading-relaxed">
+              * O botão SOS continua acessível mesmo com o app bloqueado por segurança.
+            </p>
+          </RecomecaCard>
+
+          {/* 8.2 EXPORTAR MEUS DADOS */}
+          <RecomecaCard variant="default" padding="md" className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center">
+                  <Download className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Exportar meus dados
+                  </h4>
+                  <p className="text-xs text-[#4CAF7D] dark:text-[#8FCCAE] font-semibold">
+                    &ldquo;Seus dados são seus.&rdquo;
+                  </p>
+                </div>
+              </div>
+
+              <RecomecaButton
+                variant="secondary"
+                size="sm"
+                onClick={handleExportData}
+                disabled={isExporting}
+                leftIcon={<Download className="w-3.5 h-3.5" />}
+              >
+                {isExporting ? 'Preparando...' : 'Exportar meus dados'}
+              </RecomecaButton>
+            </div>
+
+            <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+              Gera um download seguro em JSON e em formato de texto legível de tudo o que você já
+              registrou: perfil, hábitos, diário, episódios, fissuras, sono e marcos.
+            </p>
+
+            {exportSuccess && (
+              <div className="p-2.5 rounded-xl bg-[#E8F3EC] text-xs font-semibold text-[#4CAF7D] animate-fade-in">
+                ✓ Seus arquivos foram baixados com sucesso!
+              </div>
+            )}
+          </RecomecaCard>
+
+          {/* 8.3 NOTIFICAÇÕES E LEMBRETES COM TEXTO NEUTRO */}
+          <RecomecaCard variant="default" padding="md" className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <FileText className="w-4 h-4 text-[#7FBFA8]" />
+                <span className="text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Notificações e Lembretes Discretos
+                </span>
+              </div>
+              <span className="text-[10px] text-[#4CAF7D] font-bold">Garantido</span>
+            </div>
+            <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+              Qualquer aviso ou lembrete de consulta aparece apenas com o rótulo neutro{' '}
+              <strong>&ldquo;Seu lembrete do dia&rdquo;</strong>, sem nunca citar substâncias ou
+              detalhes na tela do seu aparelho.
+            </p>
+          </RecomecaCard>
+
+          {/* 8.4 APAGAR MINHA CONTA E TUDO QUE REGISTREI (FLUXO EM 2 ETAPAS) */}
+          <RecomecaCard
+            variant="default"
+            padding="md"
+            className="border-l-4 border-l-[#D96C68] space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#FBEBEA] dark:bg-[#331C1A] text-[#D96C68] flex items-center justify-center">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Apagar minha conta e tudo que registrei
+                  </h4>
+                  <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
+                    Exclusão completa e definitiva de todas as coleções
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDeleteStep(1)}
+                className="px-3 py-1.5 rounded-xl border border-[#D96C68]/40 text-[#D96C68] hover:bg-[#D96C68] hover:text-white text-xs font-bold transition-all"
+              >
+                Apagar tudo
+              </button>
+            </div>
+
+            <p className="text-[11px] text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+              Remove irreversivelmente todos os seus registros de saúde, diário, hábitos e conta de
+              acesso, sem deixar nenhum dado órfão no sistema.
+            </p>
+          </RecomecaCard>
+        </section>
+
+        {/* MODAL ETAPA 1: PRIMEIRO AVISO */}
+        {deleteStep === 1 && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="max-w-[400px] w-full bg-[#FDFAF5] dark:bg-[#1C2420] rounded-3xl p-5 border border-[#D96C68]/40 space-y-4 shadow-xl animate-fade-in">
+              <div className="w-12 h-12 rounded-full bg-[#FBEBEA] dark:bg-[#331C1A] text-[#D96C68] flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+
+              <div className="text-center space-y-1">
+                <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Tem certeza que quer apagar tudo?
+                </h3>
+                <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                  Esta ação é irreversível. Todas as suas conquistas, diários, check-ins e histórico
+                  serão apagados permanentemente dos nossos servidores.
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteStep(0)}
+                  className="flex-1 py-2.5 rounded-xl bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]"
+                >
+                  Manter meus dados
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteStep(2)}
+                  className="flex-1 py-2.5 rounded-xl bg-[#D96C68] hover:bg-[#C25854] text-white text-xs font-bold transition-colors"
+                >
+                  Quero continuar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL ETAPA 2: DIGITAR APAGAR */}
+        {deleteStep === 2 && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="max-w-[400px] w-full bg-[#FDFAF5] dark:bg-[#1C2420] rounded-3xl p-5 border border-[#D96C68] space-y-4 shadow-xl animate-fade-in">
+              <div className="w-12 h-12 rounded-full bg-[#D96C68] text-white flex items-center justify-center mx-auto">
+                <Trash2 className="w-6 h-6" />
+              </div>
+
+              <div className="text-center space-y-1">
+                <h3 className="text-base font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                  Confirmação final
+                </h3>
+                <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                  Para confirmar a exclusão completa, digite a palavra{' '}
+                  <strong className="text-[#D96C68]">APAGAR</strong> abaixo:
+                </p>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Digite APAGAR"
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-center text-sm font-bold tracking-widest bg-white dark:bg-[#242E29] border border-[#D96C68] text-[#2F4A3E] dark:text-[#E8EFE9] uppercase"
+              />
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteStep(0)
+                    setConfirmInput('')
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-white dark:bg-[#242E29] border border-[#E1E8E2] dark:border-[#2D3A34] text-xs font-bold text-[#2F4A3E] dark:text-[#E8EFE9]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={confirmInput.trim().toUpperCase() !== 'APAGAR' || isDeleting}
+                  onClick={handleConfirmDelete}
+                  className="flex-1 py-2.5 rounded-xl bg-[#D96C68] hover:bg-[#C25854] text-white text-xs font-bold disabled:opacity-40 transition-colors"
+                >
+                  {isDeleting ? 'Apagando tudo...' : 'Confirmar exclusão'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <LegalNoticeFooter />
       </div>

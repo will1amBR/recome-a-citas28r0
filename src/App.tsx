@@ -18,6 +18,7 @@ import Apoio from './pages/Apoio'
 import Perfil from './pages/Perfil'
 import Plano from './pages/Plano'
 import Login from './pages/Login'
+import Profissional from './pages/Profissional'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
 // AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/sos" element={<SOS />} />
               <Route path="/apoio" element={<Apoio />} />
               <Route path="/perfil" element={<Perfil />} />
+              <Route path="/profissional" element={<Profissional />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

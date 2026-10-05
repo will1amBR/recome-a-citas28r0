@@ -18,6 +18,8 @@ export default function Login() {
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [name, setName] = React.useState('')
+  const [role, setRole] = React.useState<'paciente' | 'profissional'>('paciente')
+  const [crm, setCrm] = React.useState('')
   const [lgpdConsent, setLgpdConsent] = React.useState(true)
   const [loading, setLoading] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -70,15 +72,20 @@ export default function Login() {
       const res = await login(email, password)
       setLoading(false)
       if (res.success) {
+        // Redireciona para /profissional se for médico, senão /hoje
         navigate('/hoje')
       } else {
         setErrorMessage(res.error || 'Não deu agora. Tenta de novo em instantes.')
       }
     } else {
-      const res = await signup(email, password, name)
+      const res = await signup(email, password, name, role, crm)
       setLoading(false)
       if (res.success) {
-        navigate('/hoje')
+        if (role === 'profissional') {
+          navigate('/profissional')
+        } else {
+          navigate('/hoje')
+        }
       } else {
         setErrorMessage(res.error || 'Não deu agora. Tenta de novo em instantes.')
       }
@@ -154,13 +161,63 @@ export default function Login() {
         <RecomecaCard variant="default" padding="lg" className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
-              <RecomecaInput
-                label="Como quer ser chamado(a)? (opcional)"
-                placeholder="Ex.: Diego, Camila, Leo..."
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                leftIcon={<User className="w-4 h-4 text-[#7FBFA8]" />}
-              />
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Tipo de conta:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRole('paciente')}
+                      className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-center touch-target ${
+                        role === 'paciente'
+                          ? 'bg-[#7FBFA8] text-white border-[#7FBFA8]'
+                          : 'bg-[#FDFAF5] dark:bg-[#1C2420] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]'
+                      }`}
+                    >
+                      Sou paciente / usuário
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('profissional')}
+                      className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-center touch-target ${
+                        role === 'profissional'
+                          ? 'bg-[#7FBFA8] text-white border-[#7FBFA8]'
+                          : 'bg-[#FDFAF5] dark:bg-[#1C2420] text-[#6A7A72] dark:text-[#A0B0A7] border-[#E1E8E2] dark:border-[#2D3A34]'
+                      }`}
+                    >
+                      Sou profissional de saúde
+                    </button>
+                  </div>
+                </div>
+
+                <RecomecaInput
+                  label={
+                    role === 'profissional'
+                      ? 'Seu nome completo'
+                      : 'Como quer ser chamado(a)? (opcional)'
+                  }
+                  placeholder={
+                    role === 'profissional'
+                      ? 'Ex.: Dra. Paula Ramos / Dr. Roberto'
+                      : 'Ex.: Diego, Camila, Leo...'
+                  }
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  leftIcon={<User className="w-4 h-4 text-[#7FBFA8]" />}
+                />
+
+                {role === 'profissional' && (
+                  <RecomecaInput
+                    label="CRM / Conselho Profissional (opcional)"
+                    placeholder="Ex.: CRM-SP 123456, CRP 06/1234... (nunca exigido)"
+                    value={crm}
+                    onChange={(e) => setCrm(e.target.value)}
+                    helperText="Campo opcional. Não é obrigatório para começar."
+                  />
+                )}
+              </>
             )}
 
             <RecomecaInput
@@ -269,18 +326,28 @@ export default function Login() {
           </form>
         </RecomecaCard>
 
-        {/* Informação sobre demonstração */}
-        <div className="text-center space-y-1">
+        {/* Informação sobre demonstração e link para profissional */}
+        <div className="text-center space-y-2">
           <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7]">
             Prefere explorar antes de criar uma conta?
           </p>
           <button
             type="button"
             onClick={() => navigate('/hoje')}
-            className="text-xs font-bold text-[#4CAF7D] dark:text-[#8FCCAE] hover:underline"
+            className="text-xs font-bold text-[#4CAF7D] dark:text-[#8FCCAE] hover:underline block mx-auto"
           >
             Acessar demonstração com dados de exemplo →
           </button>
+
+          <div className="pt-2 border-t border-[#E1E8E2] dark:border-[#2D3A34]">
+            <button
+              type="button"
+              onClick={() => navigate('/profissional')}
+              className="text-xs text-[#6A7A72] hover:text-[#2F4A3E] dark:hover:text-[#E8EFE9] underline"
+            >
+              Espaço do Profissional de Saúde →
+            </button>
+          </div>
         </div>
 
         <LegalNoticeFooter />

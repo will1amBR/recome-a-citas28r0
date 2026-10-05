@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T12:42:28.047Z",
+  "generatedAt": "2026-10-05T17:52:22.724Z",
   "collections": [
     {
       "name": "users",
@@ -37,6 +37,19 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["paciente", "profissional"]
+        },
+        {
+          "name": "crm_conselho",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -1215,6 +1228,175 @@
       "indexes": [
         "CREATE INDEX idx_milestones_owner ON milestones (owner)",
         "CREATE UNIQUE INDEX idx_milestones_owner_key ON milestones (owner, chave_unica)"
+      ]
+    },
+    {
+      "name": "doctor_links",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (patient = @request.auth.id || doctor = @request.auth.id)",
+        "view": "@request.auth.id != '' && (patient = @request.auth.id || doctor = @request.auth.id)",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (patient = @request.auth.id || doctor = @request.auth.id || (code != '' && (doctor = '' || doctor = null)))",
+        "delete": "@request.auth.id != '' && patient = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "patient",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "doctor",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "code",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "patient_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "doctor_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "doctor_crm",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_doctor_links_patient ON doctor_links (patient)",
+        "CREATE INDEX idx_doctor_links_doctor ON doctor_links (doctor)",
+        "CREATE INDEX idx_doctor_links_code ON doctor_links (code)"
+      ]
+    },
+    {
+      "name": "doctor_patient_summaries",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (patient = @request.auth.id || doctor = @request.auth.id)",
+        "view": "@request.auth.id != '' && (patient = @request.auth.id || doctor = @request.auth.id)",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (patient = @request.auth.id || doctor = @request.auth.id)",
+        "delete": "@request.auth.id != '' && patient = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "patient",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "doctor",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "patient_display_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "substances_summary",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "relapse_alerts",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "med_screening_answers",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sleep_summary",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "milestones_summary",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "next_appointment",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "updated_at_display",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_doc_summaries_patient ON doctor_patient_summaries (patient)",
+        "CREATE INDEX idx_doc_summaries_doctor ON doctor_patient_summaries (doctor)"
       ]
     }
   ]
