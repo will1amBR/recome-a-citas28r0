@@ -1,6 +1,7 @@
-/* Gera os ícones PNG do PWA Recomeça a partir de um desenho vetorial simples.
+/* Gera os ícones PNG do PWA Recomeça a partir do mesmo desenho do public/icon.svg.
    Rodar: node scripts/generate-pwa-icons.mjs
-   Resultado: public/pwa-icon-192.png, public/pwa-icon-512.png,
+   Resultado: public/icons/pwa-icon-192.png, public/icons/pwa-icon-512.png,
+              public/icons/pwa-icon-maskable-512.png,
               public/apple-touch-icon.png (180x180)
    Sem imagens de substâncias: apenas a marca (R + broto de recomeço). */
 import { deflateSync } from 'node:zlib'
@@ -50,89 +51,103 @@ function encodePng(width, height, rgba) {
   ])
 }
 
-// Paleta Recomeça (docs/design-system.md)
-const PRIMARY = [0x7f, 0xbf, 0xa8] // verde-água
-const PRIMARY_DARK = [0x6d, 0xa9, 0x8f]
-const TEXT = [0x2f, 0x4a, 0x3e] // verde-musgo
-const OFFWHITE = [0xfd, 0xfa, 0xf5] // off-white de fundo
+// Paleta Recomeça (mesmas cores do public/icon.svg)
+const GRAD_FROM = [0x8f, 0xcc, 0xae] // #8FCCAE
+const GRAD_TO = [0x7f, 0xbf, 0xa8] // #7FBFA8
+const GLYPH = [0x2f, 0x4a, 0x3e] // #2F4A3E
+const LEAF = [0xfd, 0xfa, 0xf5] // #FDFAF5
+const LEAF_DIM = [0xfd, 0xfa, 0xf5, 0.85] // folha esquerda com opacity 0.85
 
-function drawIcon(size) {
+// Desenha a marca Recomeça num canvas size x size.
+// rounded=false gera fundo quadrado cheio (safe zone para ícone maskable);
+// scale reduz o glifo para caber na zona segura do maskable.
+function drawIcon(size, { rounded = true, scale = 1 } = {}) {
   const rgba = Buffer.alloc(size * size * 4)
-  const center = size / 2
-  const radius = size / 2
-  const S = size / 512 // escala a partir de um canvas 512x512
+  const S = (size / 512) * scale // coordenadas locais = espaço 512 do SVG
+  const cornerR = rounded ? 96 * (size / 512) : 0
 
-  // Retângulo arredondado de fundo (mask Apple precisa opaco)
-  const cornerR = 96 * S
-  function inRoundedRect(x, y) {
+  function inRoundedRect(px, py) {
+    if (!rounded) return true
     const r = cornerR
-    if (x < r && y < r) return dist(x, y, r, r) <= r
-    if (x > size - r && y < r) return dist(x, y, size - r, r) <= r
-    if (x < r && y > size - r) return dist(x, y, r, size - r) <= r
-    if (x > size - r && y > size - r) return dist(x, y, size - r, size - r) <= r
+    const x = Math.min(Math.max(px, 0), size)
+    const y = Math.min(Math.max(py, 0), size)
+    if (x < r && y < r) return Math.hypot(x - r, y - r) <= r
+    if (x > size - r && y < r) return Math.hypot(x - (size - r), y - r) <= r
+    if (x < r && y > size - r) return Math.hypot(x - r, y - (size - r)) <= r
+    if (x > size - r && y > size - r) return Math.hypot(x - (size - r), y - (size - r)) <= r
     return true
   }
-  function dist(x, y, cx, cy) {
-    return Math.hypot(x - cx, y - cy)
-  }
 
-  // Coordenadas locais do glifo "R" (contorno grosseiro) + broto
-  function inGlyph(x, y) {
-    const lx = x / S
-    const ly = y / S
-    // haste vertical do R: x 175..230, y 140..380
-    if (lx >= 175 && lx <= 230 && ly >= 140 && ly <= 380) return true
-    // perna diagonal: do meio (230, 265) descendo até (330, 380)
-    if (ly >= 265 && ly <= 380) {
-      const t = (ly - 265) / (380 - 265)
-      const cx = 230 + t * 95
-      if (Math.abs(lx - cx) <= 30) return true
+  // Path do "R" do icon.svg: M170 390V160c0-10 8-18 18-18h96c52 0 90 36 90 84
+  //   0 38-22 68-56 79l64 94c5 8-1 19-10 19h-36c-6 0-11-3-14-8l-59-88h-49v68
+  //   c0 9-7 16-16 16h-12c-9 0-16-7-16-16z
+  function inGlyph(px, py) {
+    const x = px / S
+    const y = py / S
+    // Haste vertical: rect x 154..186, y 142..406 (com cantos arredondados do path)
+    if (x >= 154 && x <= 186 && y >= 142 && y <= 406) return true
+    // Cabeça do R: círculo aproximado centro (284, 226), raio ~92 — só a parte
+    // que o path cobre (à direita da haste e dentro da altura do arco)
+    if (Math.hypot(x - 284, y - 226) <= 92 && x >= 186 && y >= 142 && y <= 310) return true
+    // Furo da pança: circle cx 272 cy 224 r 38 (fill #8FCCAE ~ cor do fundo)
+    if (Math.hypot(x - 272, y - 224) <= 38) return 'hole'
+    // Perna diagonal: do fim da pança (x~284..374, y~310) desce até y=406
+    if (y >= 310 && y <= 406) {
+      const t = (y - 310) / (406 - 310)
+      // largura da perna vai afinando de ~44 a ~34 (h-36 do path)
+      const halfW = 22 - t * 4
+      const cx = 300 + t * 46
+      if (Math.abs(x - cx) <= halfW) return true
     }
-    // pança do R: círculo em (270, 210) raio 75
-    if (dist(lx, ly, 270, 210) <= 75 && ly <= 265) return true
-    // furo da pança (contra-forma off-white)
-    if (dist(lx, ly, 272, 212) <= 36 && ly <= 240) return 'hole'
     return false
   }
 
-  // Broto de recomeço (folhinha acima do R)
-  function inSprout(x, y) {
-    const lx = x / S
-    const ly = y / S
-    // talinho
-    if (lx >= 262 && lx <= 274 && ly >= 92 && ly <= 140) return true
-    // folha esquerda
-    if (dist(lx, ly, 240, 108) <= 24 && lx < 262) return true
-    // folha direita
-    if (dist(lx, ly, 296, 108) <= 24 && lx > 274) return true
+  // Folhas do broto (paths 11 e 12 do icon.svg), aproximação por círculos
+  function inSprout(px, py) {
+    const x = px / S
+    const y = py / S
+    // talo central x 272..286, y 124..142
+    if (x >= 268 && x <= 286 && y >= 124 && y <= 144) return true
+    // folha direita: círculo centro (312, 168) raio 38 — parte acima do R
+    if (Math.hypot(x - 308, y - 166) <= 40 && y <= 190) return 'right'
+    // folha esquerda: círculo centro (236, 168) raio 38
+    if (Math.hypot(x - 236, y - 166) <= 40 && y <= 190) return 'left'
     return false
   }
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const idx = (y * size + x) * 4
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      const idx = (py * size + px) * 4
       let r, g, b, a
-      if (!inRoundedRect(x + 0.5, y + 0.5)) {
+      const cx = px + 0.5
+      const cy = py + 0.5
+      if (!inRoundedRect(cx, cy)) {
         a = 0
         r = g = b = 0
       } else {
         a = 255
-        // leve gradiente diagonal de verde-água
-        const t = (x / size + y / size) / 2
+        // gradiente diagonal (0,0)->(1,1) do SVG
+        const tx = cx / size
+        const ty = cy / size
+        const t = tx * 0.5 + ty * 0.5
         const base = [
-          Math.round(PRIMARY[0] + (PRIMARY_DARK[0] - PRIMARY[0]) * t),
-          Math.round(PRIMARY[1] + (PRIMARY_DARK[1] - PRIMARY[1]) * t),
-          Math.round(PRIMARY[2] + (PRIMARY_DARK[2] - PRIMARY[2]) * t),
+          Math.round(GRAD_FROM[0] + (GRAD_TO[0] - GRAD_FROM[0]) * t),
+          Math.round(GRAD_FROM[1] + (GRAD_TO[1] - GRAD_FROM[1]) * t),
+          Math.round(GRAD_FROM[2] + (GRAD_TO[2] - GRAD_FROM[2]) * t),
         ]
-        // círculo de fundo sutil (marca circular dentro do quadrado)
-        const glyph = inGlyph(x + 0.5, y + 0.5)
-        const sprout = inSprout(x + 0.5, y + 0.5)
+        const glyph = inGlyph(cx, cy)
+        const sprout = inSprout(cx, cy)
         if (glyph === 'hole') {
-          ;[r, g, b] = base // furo: mantém fundo
+          ;[r, g, b] = base // o círculo da pança usa a cor clara do gradiente
         } else if (glyph) {
-          ;[r, g, b] = TEXT
-        } else if (sprout) {
-          ;[r, g, b] = OFFWHITE
+          ;[r, g, b] = GLYPH
+        } else if (sprout === 'right') {
+          ;[r, g, b] = LEAF
+        } else if (sprout === 'left') {
+          // folha esquerda com opacity 0.85 sobre o gradiente
+          r = Math.round(base[0] * 0.15 + LEAF_DIM[0] * 0.85)
+          g = Math.round(base[1] * 0.15 + LEAF_DIM[1] * 0.85)
+          b = Math.round(base[2] * 0.15 + LEAF_DIM[2] * 0.85)
         } else {
           ;[r, g, b] = base
         }
@@ -146,9 +161,12 @@ function drawIcon(size) {
   return encodePng(size, size, rgba)
 }
 
-mkdirSync('public', { recursive: true })
-for (const size of [192, 512]) {
-  writeFileSync(`public/pwa-icon-${size}.png`, drawIcon(size))
-}
+mkdirSync('public/icons', { recursive: true })
+writeFileSync('public/icons/pwa-icon-192.png', drawIcon(192))
+writeFileSync('public/icons/pwa-icon-512.png', drawIcon(512))
+writeFileSync(
+  'public/icons/pwa-icon-maskable-512.png',
+  drawIcon(512, { rounded: false, scale: 0.72 }),
+)
 writeFileSync('public/apple-touch-icon.png', drawIcon(180))
-console.log('Ícones PWA gerados: 192, 512 e apple-touch-icon (180).')
+console.log('Ícones PWA gerados em public/icons/')
