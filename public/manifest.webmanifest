@@ -1,0 +1,28 @@
+{
+  "name": "Recomeça",
+  "short_name": "Recomeça",
+  "description": "App de apoio acolhedor para quem quer controlar, reduzir e parar vícios. Um dia de cada vez.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDFAF5",
+  "theme_color": "#7FBFA8",
+  "categories": ["health", "medical", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
