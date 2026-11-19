@@ -62,6 +62,11 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  getInstallPromptState,
+  subscribeToInstallChanges,
+  InstallPromptState,
+} from '@/lib/pwaInstall'
 
 export default function Perfil() {
   const navigate = useNavigate()
@@ -86,9 +91,20 @@ export default function Perfil() {
     medicalAppointment,
     updateMedicalAppointment,
     updateContact,
+    episodeLogs,
   } = useRecomecaStore()
 
   const [customRiskInput, setCustomRiskInput] = React.useState<string>('')
+
+  // Estado do convite "Instalar no celular" (PWA)
+  const [installState, setInstallState] = React.useState<InstallPromptState>(() =>
+    getInstallPromptState(),
+  )
+  React.useEffect(() => {
+    const unsubscribe = subscribeToInstallChanges(setInstallState)
+    return unsubscribe
+  }, [])
+  const isAppleMobileDevice = React.useMemo(() => /iphone|ipad|ipod/i.test(navigator.userAgent), [])
 
   // Estados de Privacidade: PIN e Biometria
   const [hasPin, setHasPin] = React.useState<boolean>(() => isPinSet())
@@ -138,6 +154,14 @@ export default function Perfil() {
     }
   }, [isAuthenticated, user?.id, loadDoctorLinks])
 
+  // Restaura o código pendente persistido no backend após recarregar a página
+  React.useEffect(() => {
+    const pendingLink = doctorLinks.find((l) => l.status === 'pending')
+    if (pendingLink?.code) {
+      setGeneratedCode(pendingLink.code)
+    }
+  }, [doctorLinks])
+
   // Sincroniza resumo com o médico caso haja link ativo
   const syncSummaryWithDoctor = React.useCallback(async () => {
     if (!user?.id) return
@@ -153,7 +177,10 @@ export default function Perfil() {
         bestStreak: h.bestStreakDays,
         cleanDaysMonth: h.cleanDaysThisMonth || h.currentStreakDays,
       })),
-      relapse_alerts: [],
+      relapse_alerts: episodeLogs.slice(0, 10).map((ep) => ({
+        date: ep.date?.split('-').reverse().join('/') || '',
+        substanceName: ep.substanceName || 'Não informado',
+      })),
       med_screening_answers: [
         { question: 'Precisou tomar mais para fazer o mesmo efeito?', answeredYes: false },
         { question: 'Sentiu vontade de tomar antes do horário prescrito?', answeredYes: false },
@@ -180,6 +207,7 @@ export default function Perfil() {
     dailyRoutine.sleepRoutine,
     medicalAppointment,
     doctorLinks,
+    episodeLogs,
   ])
 
   React.useEffect(() => {
@@ -1402,7 +1430,7 @@ export default function Perfil() {
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
-                      <span>{copiedDoctorCode ? 'Copiado!' : 'Copiar'}</span>
+                      <span>{copiedDoctorCode ? 'Código copiado' : 'Copiar'}</span>
                     </button>
                   </div>
                 </div>
@@ -1608,6 +1636,39 @@ export default function Perfil() {
               </div>
             )}
           </RecomecaCard>
+
+          {/* 8.2b INSTALAR NO CELULAR (PWA) */}
+          {!installState.isInstalled && (
+            <RecomecaCard variant="default" padding="md" className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center">
+                    <Download className="w-4 h-4" />
+                  </div>
+                  <h4 className="text-sm font-bold text-[#2F4A3E] dark:text-[#E8EFE9]">
+                    Instalar no celular
+                  </h4>
+                </div>
+                {installState.canInstall && (
+                  <RecomecaButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => installState.promptInstall()}
+                    leftIcon={<Download className="w-3.5 h-3.5" />}
+                  >
+                    Instalar no celular
+                  </RecomecaButton>
+                )}
+              </div>
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                {installState.canInstall
+                  ? 'Leve o Recomeça com você. Instalar no celular deixa o app a um toque de distância nos dias difíceis.'
+                  : isAppleMobileDevice
+                    ? 'No iPhone: toque em Compartilhar e depois em Adicionar à Tela de Início.'
+                    : 'Leve o Recomeça com você. Instalar no celular deixa o app a um toque de distância nos dias difíceis.'}
+              </p>
+            </RecomecaCard>
+          )}
 
           {/* 8.3 NOTIFICAÇÕES E LEMBRETES COM TEXTO NEUTRO */}
           <RecomecaCard variant="default" padding="md" className="space-y-2">

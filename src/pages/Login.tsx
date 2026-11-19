@@ -25,12 +25,12 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null)
 
-  // Se já estiver logado, redireciona para /hoje
+  // Se já estiver logado, redireciona conforme o papel: profissional → painel; paciente → hoje
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate('/hoje', { replace: true })
+      navigate(user?.role === 'profissional' ? '/profissional' : '/hoje', { replace: true })
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, user?.role, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,23 +72,18 @@ export default function Login() {
       const res = await login(email, password)
       setLoading(false)
       if (res.success) {
-        // Redireciona para /profissional se for médico, senão /hoje
-        navigate('/hoje')
+        // O redirect acontece no useEffect acima, com o papel vindo do authStore
       } else {
         setErrorMessage(res.error || 'Não deu agora. Tenta de novo em instantes.')
       }
+      return
+    }
+    const res = await signup(email, password, name, role, crm)
+    setLoading(false)
+    if (res.success) {
+      // O redirect acontece no useEffect acima, com o papel vindo do authStore
     } else {
-      const res = await signup(email, password, name, role, crm)
-      setLoading(false)
-      if (res.success) {
-        if (role === 'profissional') {
-          navigate('/profissional')
-        } else {
-          navigate('/hoje')
-        }
-      } else {
-        setErrorMessage(res.error || 'Não deu agora. Tenta de novo em instantes.')
-      }
+      setErrorMessage(res.error || 'Não deu agora. Tenta de novo em instantes.')
     }
   }
 

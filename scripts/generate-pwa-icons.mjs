@@ -1,172 +1,137 @@
-/* Gera os ícones PNG do PWA Recomeça a partir do mesmo desenho do public/icon.svg.
-   Rodar: node scripts/generate-pwa-icons.mjs
-   Resultado: public/icons/pwa-icon-192.png, public/icons/pwa-icon-512.png,
-              public/icons/pwa-icon-maskable-512.png,
-              public/apple-touch-icon.png (180x180)
-   Sem imagens de substâncias: apenas a marca (R + broto de recomeço). */
+/**
+ * Gera os ícones PWA do Recomeça (PNG 192/512 e maskable 512), sem dependências
+ * externas. Pode ser executado direto (node scripts/generate-pwa-icons.mjs) e
+ * também é chamado no build pelo plugin em vite.config.ts — assim os PNGs
+ * existem mesmo sem shell disponível.
+ *
+ * Estratégia: se `sharp` estiver instalado, rasteriza o SVG real (public/icon.svg).
+ * Sem sharp, desenha um motivo equivalente (quadrado verde arredondado, círculo
+ * claro central e anel escuro — sol de recomeço) pixel a pixel em PNG RGBA válido.
+ */
+import { readFileSync, writeFileSync } from 'node:fs'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { deflateSync } from 'node:zlib'
-import { writeFileSync, mkdirSync } from 'node:fs'
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const svgPath = resolve(root, 'public/icon.svg')
+const outDir = resolve(root, 'public')
+
+const GREEN = [127, 191, 168] // #7FBFA8
+const LIGHT = [232, 243, 236] // #E8F3EC
+const DARK = [47, 74, 62] // #2F4A3E
 
 function crc32(buf) {
-  let c
-  const table = []
-  for (let n = 0; n < 256; n++) {
-    c = n
+  let crc = 0xffffffff
+  for (let n = 0; n < buf.length; n++) {
+    let c = (crc ^ buf[n]) & 0xff
     for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
-    table[n] = c >>> 0
+    crc = (crc >>> 8) ^ c
   }
-  let crc = 0 ^ -1
-  for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xff]
-  return (crc ^ -1) >>> 0
+  return (crc ^ 0xffffffff) >>> 0
 }
 
 function chunk(type, data) {
   const len = Buffer.alloc(4)
   len.writeUInt32BE(data.length)
-  const typeBuf = Buffer.from(type, 'ascii')
+  const body = Buffer.concat([Buffer.from(type, 'ascii'), data])
   const crc = Buffer.alloc(4)
-  crc.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])))
-  return Buffer.concat([len, typeBuf, data, crc])
+  crc.writeUInt32BE(crc32(body))
+  return Buffer.concat([len, body, crc])
 }
 
-function encodePng(width, height, rgba) {
-  const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-  const ihdr = Buffer.alloc(13)
-  ihdr.writeUInt32BE(width, 0)
-  ihdr.writeUInt32BE(height, 4)
-  ihdr[8] = 8 // bit depth
-  ihdr[9] = 6 // color type RGBA
-  const stride = width * 4
-  const raw = Buffer.alloc((stride + 1) * height)
-  for (let y = 0; y < height; y++) {
-    raw[y * (stride + 1)] = 0 // filtro none
-    rgba.copy(raw, y * (stride + 1) + 1, y * stride, (y + 1) * stride)
+function drawIconBytes(size, { maskable = false } = {}) {
+  const px = Buffer.alloc(size * size * 4)
+  const radius = maskable ? 0 : size * 0.18
+  const cx = size / 2
+  const cy = size / 2
+  const innerR = size * (maskable ? 0.28 : 0.34)
+  const ringR = size * (maskable ? 0.4 : 0.48)
+  const ringW = size * 0.055
+
+  const insideRounded = (x, y) => {
+    if (maskable) return true
+    const dx = Math.max(Math.abs(x - cx) - (size / 2 - radius), 0)
+    const dy = Math.max(Math.abs(y - cy) - (size / 2 - radius), 0)
+    return dx * dx + dy * dy <= radius * radius
   }
-  const idat = deflateSync(raw, { level: 9 })
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4
+      if (!insideRounded(x, y)) {
+        px[i + 3] = 0
+        continue
+      }
+      const d = Math.hypot(x - cx, y - cy)
+      let cr = GREEN[0]
+      let cg = GREEN[1]
+      let cb = GREEN[2]
+      if (d <= innerR) {
+        cr = LIGHT[0]
+        cg = LIGHT[1]
+        cb = LIGHT[2]
+      } else if (Math.abs(d - ringR) <= ringW / 2) {
+        cr = DARK[0]
+        cg = DARK[1]
+        cb = DARK[2]
+      }
+      px[i] = cr
+      px[i + 1] = cg
+      px[i + 2] = cb
+      px[i + 3] = 255
+    }
+  }
+  return px
+}
+
+function buildPng(size, opts) {
+  const px = drawIconBytes(size, opts)
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(size, 0)
+  ihdr.writeUInt32BE(size, 4)
+  ihdr[8] = 8 // bit depth
+  ihdr[9] = 6 // RGBA
+  const raw = Buffer.alloc((size * 4 + 1) * size)
+  for (let y = 0; y < size; y++) {
+    raw[y * (size * 4 + 1)] = 0 // filter: none
+    px.copy(raw, y * (size * 4 + 1) + 1, y * size * 4, (y + 1) * size * 4)
+  }
   return Buffer.concat([
-    sig,
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', ihdr),
-    chunk('IDAT', idat),
+    chunk('IDAT', deflateSync(raw, { level: 9 })),
     chunk('IEND', Buffer.alloc(0)),
   ])
 }
 
-// Paleta Recomeça (mesmas cores do public/icon.svg)
-const GRAD_FROM = [0x8f, 0xcc, 0xae] // #8FCCAE
-const GRAD_TO = [0x7f, 0xbf, 0xa8] // #7FBFA8
-const GLYPH = [0x2f, 0x4a, 0x3e] // #2F4A3E
-const LEAF = [0xfd, 0xfa, 0xf5] // #FDFAF5
-const LEAF_DIM = [0xfd, 0xfa, 0xf5, 0.85] // folha esquerda com opacity 0.85
+export const PWA_ICON_FILES = [
+  { file: 'icon-192.png', size: 192, opts: {} },
+  { file: 'icon-512.png', size: 512, opts: {} },
+  { file: 'icon-maskable-512.png', size: 512, opts: { maskable: true } },
+]
 
-// Desenha a marca Recomeça num canvas size x size.
-// rounded=false gera fundo quadrado cheio (safe zone para ícone maskable);
-// scale reduz o glifo para caber na zona segura do maskable.
-function drawIcon(size, { rounded = true, scale = 1 } = {}) {
-  const rgba = Buffer.alloc(size * size * 4)
-  const S = (size / 512) * scale // coordenadas locais = espaço 512 do SVG
-  const cornerR = rounded ? 96 * (size / 512) : 0
-
-  function inRoundedRect(px, py) {
-    if (!rounded) return true
-    const r = cornerR
-    const x = Math.min(Math.max(px, 0), size)
-    const y = Math.min(Math.max(py, 0), size)
-    if (x < r && y < r) return Math.hypot(x - r, y - r) <= r
-    if (x > size - r && y < r) return Math.hypot(x - (size - r), y - r) <= r
-    if (x < r && y > size - r) return Math.hypot(x - r, y - (size - r)) <= r
-    if (x > size - r && y > size - r) return Math.hypot(x - (size - r), y - (size - r)) <= r
-    return true
-  }
-
-  // Path do "R" do icon.svg: M170 390V160c0-10 8-18 18-18h96c52 0 90 36 90 84
-  //   0 38-22 68-56 79l64 94c5 8-1 19-10 19h-36c-6 0-11-3-14-8l-59-88h-49v68
-  //   c0 9-7 16-16 16h-12c-9 0-16-7-16-16z
-  function inGlyph(px, py) {
-    const x = px / S
-    const y = py / S
-    // Haste vertical: rect x 154..186, y 142..406 (com cantos arredondados do path)
-    if (x >= 154 && x <= 186 && y >= 142 && y <= 406) return true
-    // Cabeça do R: círculo aproximado centro (284, 226), raio ~92 — só a parte
-    // que o path cobre (à direita da haste e dentro da altura do arco)
-    if (Math.hypot(x - 284, y - 226) <= 92 && x >= 186 && y >= 142 && y <= 310) return true
-    // Furo da pança: circle cx 272 cy 224 r 38 (fill #8FCCAE ~ cor do fundo)
-    if (Math.hypot(x - 272, y - 224) <= 38) return 'hole'
-    // Perna diagonal: do fim da pança (x~284..374, y~310) desce até y=406
-    if (y >= 310 && y <= 406) {
-      const t = (y - 310) / (406 - 310)
-      // largura da perna vai afinando de ~44 a ~34 (h-36 do path)
-      const halfW = 22 - t * 4
-      const cx = 300 + t * 46
-      if (Math.abs(x - cx) <= halfW) return true
+/** Gera os três PNGs em /public. Tenta sharp (SVG real); senão, PNG desenhado. */
+export async function generatePwaIcons() {
+  try {
+    const { default: sharp } = await import('sharp')
+    const svg = readFileSync(svgPath)
+    for (const { file, size } of PWA_ICON_FILES) {
+      await sharp(svg, { density: 300 })
+        .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toFile(resolve(outDir, file))
     }
-    return false
-  }
-
-  // Folhas do broto (paths 11 e 12 do icon.svg), aproximação por círculos
-  function inSprout(px, py) {
-    const x = px / S
-    const y = py / S
-    // talo central x 272..286, y 124..142
-    if (x >= 268 && x <= 286 && y >= 124 && y <= 144) return true
-    // folha direita: círculo centro (312, 168) raio 38 — parte acima do R
-    if (Math.hypot(x - 308, y - 166) <= 40 && y <= 190) return 'right'
-    // folha esquerda: círculo centro (236, 168) raio 38
-    if (Math.hypot(x - 236, y - 166) <= 40 && y <= 190) return 'left'
-    return false
-  }
-
-  for (let py = 0; py < size; py++) {
-    for (let px = 0; px < size; px++) {
-      const idx = (py * size + px) * 4
-      let r, g, b, a
-      const cx = px + 0.5
-      const cy = py + 0.5
-      if (!inRoundedRect(cx, cy)) {
-        a = 0
-        r = g = b = 0
-      } else {
-        a = 255
-        // gradiente diagonal (0,0)->(1,1) do SVG
-        const tx = cx / size
-        const ty = cy / size
-        const t = tx * 0.5 + ty * 0.5
-        const base = [
-          Math.round(GRAD_FROM[0] + (GRAD_TO[0] - GRAD_FROM[0]) * t),
-          Math.round(GRAD_FROM[1] + (GRAD_TO[1] - GRAD_FROM[1]) * t),
-          Math.round(GRAD_FROM[2] + (GRAD_TO[2] - GRAD_FROM[2]) * t),
-        ]
-        const glyph = inGlyph(cx, cy)
-        const sprout = inSprout(cx, cy)
-        if (glyph === 'hole') {
-          ;[r, g, b] = base // o círculo da pança usa a cor clara do gradiente
-        } else if (glyph) {
-          ;[r, g, b] = GLYPH
-        } else if (sprout === 'right') {
-          ;[r, g, b] = LEAF
-        } else if (sprout === 'left') {
-          // folha esquerda com opacity 0.85 sobre o gradiente
-          r = Math.round(base[0] * 0.15 + LEAF_DIM[0] * 0.85)
-          g = Math.round(base[1] * 0.15 + LEAF_DIM[1] * 0.85)
-          b = Math.round(base[2] * 0.15 + LEAF_DIM[2] * 0.85)
-        } else {
-          ;[r, g, b] = base
-        }
-      }
-      rgba[idx] = r
-      rgba[idx + 1] = g
-      rgba[idx + 2] = b
-      rgba[idx + 3] = a
+    return 'sharp'
+  } catch {
+    for (const { file, size, opts } of PWA_ICON_FILES) {
+      writeFileSync(resolve(outDir, file), buildPng(size, opts))
     }
+    return 'fallback'
   }
-  return encodePng(size, size, rgba)
 }
 
-mkdirSync('public/icons', { recursive: true })
-writeFileSync('public/icons/pwa-icon-192.png', drawIcon(192))
-writeFileSync('public/icons/pwa-icon-512.png', drawIcon(512))
-writeFileSync(
-  'public/icons/pwa-icon-maskable-512.png',
-  drawIcon(512, { rounded: false, scale: 0.72 }),
-)
-writeFileSync('public/apple-touch-icon.png', drawIcon(180))
-console.log('Ícones PWA gerados em public/icons/')
+// Execução direta: node scripts/generate-pwa-icons.mjs
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  generatePwaIcons().then((mode) => console.log(`Ícones PWA gerados (${mode})`))
+}

@@ -49,6 +49,7 @@ export default function Profissional() {
   const [patientSummary, setPatientSummary] = React.useState<DoctorPatientSummaryData | null>(null)
   const [copiedSummary, setCopiedSummary] = React.useState(false)
   const [loadingPatients, setLoadingPatients] = React.useState(false)
+  const [patientsError, setPatientsError] = React.useState(false)
 
   const doctorName = user?.name || 'Dr(a). Profissional'
   const doctorCrm = user?.crm_conselho || ''
@@ -57,12 +58,18 @@ export default function Profissional() {
   const loadPatients = React.useCallback(async () => {
     if (!user?.id) return
     setLoadingPatients(true)
-    const list = await getDoctorLinkedPatients(user.id)
-    setPatients(list)
-    if (list.length > 0 && !selectedPatientId) {
-      setSelectedPatientId(list[0].patient)
+    setPatientsError(false)
+    try {
+      const list = await getDoctorLinkedPatients(user.id)
+      setPatients(list)
+      if (list.length > 0 && !selectedPatientId) {
+        setSelectedPatientId(list[0].patient)
+      }
+    } catch {
+      setPatientsError(true)
+    } finally {
+      setLoadingPatients(false)
     }
-    setLoadingPatients(false)
   }, [user?.id, selectedPatientId])
 
   React.useEffect(() => {
@@ -326,6 +333,59 @@ export default function Profissional() {
         </section>
 
         {/* 2. LISTA DE PACIENTES VINCULADOS */}
+        {isAuthenticated && loadingPatients && (
+          <section aria-label="Buscando pacientes" className="space-y-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-[#7FBFA8]" />
+              <span>Pacientes Vinculados</span>
+            </h2>
+            <RecomecaCard variant="default" padding="md" className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#E8F3EC] dark:bg-[#2A3831] text-[#7FBFA8] flex items-center justify-center shrink-0 animate-pulse">
+                <Users className="w-4 h-4" />
+              </div>
+              <span className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] font-semibold">
+                Buscando seus pacientes...
+              </span>
+            </RecomecaCard>
+          </section>
+        )}
+
+        {isAuthenticated && !loadingPatients && patientsError && (
+          <section aria-label="Erro ao buscar pacientes" className="space-y-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-[#7FBFA8]" />
+              <span>Pacientes Vinculados</span>
+            </h2>
+            <RecomecaCard variant="default" padding="md" className="space-y-3">
+              <p className="text-xs text-[#D96C68] font-semibold">
+                Não deu agora. Tente de novo em instantes.
+              </p>
+              <button
+                type="button"
+                onClick={loadPatients}
+                className="px-3.5 py-2 rounded-xl bg-[#7FBFA8] hover:bg-[#6DA98F] text-white text-xs font-bold transition-colors"
+              >
+                Tentar de novo
+              </button>
+            </RecomecaCard>
+          </section>
+        )}
+
+        {isAuthenticated && !loadingPatients && !patientsError && patients.length === 0 && (
+          <section aria-label="Nenhum paciente vinculado" className="space-y-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-[#7FBFA8]" />
+              <span>Pacientes Vinculados</span>
+            </h2>
+            <RecomecaCard variant="default" padding="md">
+              <p className="text-xs text-[#6A7A72] dark:text-[#A0B0A7] leading-relaxed">
+                Nenhum paciente vinculado ainda. Gere um convite por código quando seu paciente
+                estiver pronto.
+              </p>
+            </RecomecaCard>
+          </section>
+        )}
+
         {patients.length > 0 && (
           <section aria-label="Lista de pacientes" className="space-y-2">
             <h2 className="text-xs font-bold uppercase tracking-wider text-[#6A7A72] dark:text-[#A0B0A7] flex items-center gap-1.5">
