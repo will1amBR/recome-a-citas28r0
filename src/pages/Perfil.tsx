@@ -101,7 +101,7 @@ export default function Perfil() {
     getInstallPromptState(),
   )
   React.useEffect(() => {
-    const unsubscribe = subscribeToInstallChanges(setInstallState)
+    const unsubscribe = subscribeToInstallChanges(() => setInstallState(getInstallPromptState()))
     return unsubscribe
   }, [])
   const isAppleMobileDevice = React.useMemo(() => /iphone|ipad|ipod/i.test(navigator.userAgent), [])
